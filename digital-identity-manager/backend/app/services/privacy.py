@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from sqlalchemy import delete, select
@@ -58,7 +58,7 @@ def export_identity(db: Session, identity: Identity) -> dict[str, Any]:
 
     return {
         "format": "digital-identity-manager/export/1",
-        "exported_at": datetime.now().astimezone().isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
         "identity": _serialise(identity),
         "identifiers": [
             _serialise(row)

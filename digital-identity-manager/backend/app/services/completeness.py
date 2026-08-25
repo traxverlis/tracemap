@@ -127,7 +127,7 @@ def compute(db: Session, identity: Identity) -> dict:
         known_count = known.get(spec.key, 0)
         if expected_count <= 0:
             # The operator declared this category as not applicable.
-            ratio = 1.0 if known_count == 0 else 1.0
+            ratio = 1.0
             missing = 0
         else:
             ratio = min(known_count / expected_count, 1.0)
