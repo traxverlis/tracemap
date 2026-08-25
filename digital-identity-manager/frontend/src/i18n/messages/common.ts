@@ -12,6 +12,11 @@ export const common = {
     en: 'Checking authentication and bootstrap status…',
     fr: 'Vérification de l’authentification et de l’initialisation…',
   },
+  'app.apiUnavailableTitle': { en: 'API unreachable', fr: 'API injoignable' },
+  'app.apiUnavailableDescription': {
+    en: 'The DIM API did not answer, so we cannot tell whether the first administrator account still has to be created. Wait for the backend to finish starting, then try again.',
+    fr: 'L’API DIM n’a pas répondu : impossible de savoir si le premier compte administrateur reste à créer. Attendez la fin du démarrage du backend, puis réessayez.',
+  },
 
   'common.save': { en: 'Save', fr: 'Enregistrer' },
   'common.saveChanges': { en: 'Save changes', fr: 'Enregistrer les modifications' },
