@@ -1,66 +1,70 @@
 import { NavLink } from 'react-router-dom'
 
+import { useI18n, type TranslationKey } from '../i18n'
+
 interface NavSection {
-  title: string
-  items: Array<{ to: string; label: string }>
+  titleKey: TranslationKey
+  items: Array<{ to: string; labelKey: TranslationKey }>
 }
 
 const sections: NavSection[] = [
   {
-    title: 'Overview',
+    titleKey: 'nav.section.overview',
     items: [
-      { to: '/dashboard', label: 'Dashboard' },
-      { to: '/identity', label: 'Identity' },
-      { to: '/identity/wizard', label: 'Identity wizard' },
+      { to: '/dashboard', labelKey: 'nav.dashboard' },
+      { to: '/identity', labelKey: 'nav.identity' },
+      { to: '/identity/wizard', labelKey: 'nav.identityWizard' },
     ],
   },
   {
-    title: 'Core data',
+    titleKey: 'nav.section.coreData',
     items: [
-      { to: '/identifiers', label: 'All identifiers' },
-      { to: '/emails', label: 'Emails' },
-      { to: '/phones', label: 'Phones' },
-      { to: '/usernames', label: 'Usernames' },
-      { to: '/addresses', label: 'Addresses' },
-      { to: '/professional', label: 'Professional history' },
-      { to: '/domains', label: 'Domains' },
-      { to: '/profiles', label: 'Profiles' },
-      { to: '/photos', label: 'Photos' },
+      { to: '/identifiers', labelKey: 'nav.identifiers' },
+      { to: '/emails', labelKey: 'nav.emails' },
+      { to: '/phones', labelKey: 'nav.phones' },
+      { to: '/usernames', labelKey: 'nav.usernames' },
+      { to: '/addresses', labelKey: 'nav.addresses' },
+      { to: '/professional', labelKey: 'nav.professional' },
+      { to: '/domains', labelKey: 'nav.domains' },
+      { to: '/profiles', labelKey: 'nav.profiles' },
+      { to: '/photos', labelKey: 'nav.photos' },
     ],
   },
   {
-    title: 'Investigations',
+    titleKey: 'nav.section.investigations',
     items: [
-      { to: '/findings', label: 'Findings' },
-      { to: '/relationships', label: 'Relationships' },
-      { to: '/data-brokers', label: 'Data brokers' },
-      { to: '/deletions', label: 'Deletion requests' },
-      { to: '/scans', label: 'Scans' },
-      { to: '/evidence', label: 'Evidence' },
+      { to: '/findings', labelKey: 'nav.findings' },
+      { to: '/relationships', labelKey: 'nav.relationships' },
+      { to: '/data-brokers', labelKey: 'nav.dataBrokers' },
+      { to: '/deletions', labelKey: 'nav.deletions' },
+      { to: '/scans', labelKey: 'nav.scans' },
+      { to: '/evidence', labelKey: 'nav.evidence' },
     ],
   },
   {
-    title: 'System',
-    items: [{ to: '/settings', label: 'Settings' }],
+    titleKey: 'nav.section.system',
+    items: [{ to: '/settings', labelKey: 'nav.settings' }],
   },
 ]
 
 export function SidebarNav(): JSX.Element {
+  const { t } = useI18n()
+
   return (
     <aside className="app-sidebar">
       <div className="sidebar">
         <div className="sidebar__brand">
-          <p className="muted" style={{ margin: 0 }}>Digital Identity Manager</p>
-          <h1 className="sidebar__title">DIM Console</h1>
-          <span className="muted">OSINT, correlation, privacy, deletion workflows.</span>
+          <p className="muted" style={{ margin: 0 }}>{t('app.name')}</p>
+          <h1 className="sidebar__title">{t('app.console')}</h1>
+          <span className="muted">{t('app.tagline')}</span>
         </div>
         {sections.map((section) => (
-          <div key={section.title}>
-            <p className="sidebar__section-title">{section.title}</p>
+          <div key={section.titleKey}>
+            <p className="sidebar__section-title">{t(section.titleKey)}</p>
             <nav className="sidebar__nav">
               {section.items.map((item) => (
                 <NavLink key={item.to} to={item.to} className="sidebar__link">
-                  {item.label}
+                  {t(item.labelKey)}
                 </NavLink>
               ))}
             </nav>

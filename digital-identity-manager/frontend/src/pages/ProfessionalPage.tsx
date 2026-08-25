@@ -13,6 +13,7 @@ import { PageHeader } from '../components/PageHeader'
 import { useFetch } from '../hooks/useFetch'
 import { useIdentity } from '../hooks/useIdentity'
 import { useToast } from '../hooks/useToast'
+import { useI18n } from '../i18n'
 import { formatDate, getErrorDetail, maybeNull } from '../utils'
 
 interface CompanyFormState {
@@ -54,6 +55,7 @@ const toFormState = (company: Company): CompanyFormState => ({
 export function ProfessionalPage(): JSX.Element {
   const { selectedIdentityId } = useIdentity()
   const { addToast } = useToast()
+  const { t } = useI18n()
   const [editing, setEditing] = useState<Company | null>(null)
   const [form, setForm] = useState<CompanyFormState>(emptyForm)
   const [submitting, setSubmitting] = useState(false)
@@ -82,7 +84,7 @@ export function ProfessionalPage(): JSX.Element {
 
   const save = async () => {
     if (!selectedIdentityId || !form.name.trim()) {
-      addToast({ title: 'Company name required', tone: 'warning' })
+      addToast({ title: t('identifiers.professional.toast.nameRequired'), tone: 'warning' })
       return
     }
     setSubmitting(true)
@@ -101,15 +103,15 @@ export function ProfessionalPage(): JSX.Element {
       }
       if (editing) {
         await updateCompany(editing.id, payload)
-        addToast({ title: 'Company updated', tone: 'success' })
+        addToast({ title: t('identifiers.professional.toast.updated'), tone: 'success' })
       } else {
         await createCompany(payload)
-        addToast({ title: 'Company created', tone: 'success' })
+        addToast({ title: t('identifiers.professional.toast.created'), tone: 'success' })
       }
       setModalOpen(false)
       await refetch()
     } catch (errorValue) {
-      addToast({ title: 'Unable to save company', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('identifiers.professional.toast.saveFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setSubmitting(false)
     }
@@ -120,11 +122,11 @@ export function ProfessionalPage(): JSX.Element {
     setDeletingBusy(true)
     try {
       await deleteCompany(deleting.id)
-      addToast({ title: 'Company removed', tone: 'success' })
+      addToast({ title: t('identifiers.professional.toast.removed'), tone: 'success' })
       setDeleting(null)
       await refetch()
     } catch (errorValue) {
-      addToast({ title: 'Unable to delete company', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('identifiers.professional.toast.deleteFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setDeletingBusy(false)
     }
@@ -132,57 +134,57 @@ export function ProfessionalPage(): JSX.Element {
 
   const columns = useMemo<DataTableColumn<Company>[]>(
     () => [
-      { key: 'name', header: 'Company', render: (row) => row.name, sortValue: (row) => row.name, filterValue: (row) => row.name },
-      { key: 'position', header: 'Position', render: (row) => row.position ?? '—', sortValue: (row) => row.position ?? '', filterValue: (row) => row.position ?? '' },
-      { key: 'domain', header: 'Domain', render: (row) => row.professional_domain ?? '—', sortValue: (row) => row.professional_domain ?? '', filterValue: (row) => row.professional_domain ?? '' },
-      { key: 'status', header: 'Timeline', render: (row) => <Badge tone={row.is_former ? 'warning' : 'success'}>{row.is_former ? 'Former' : 'Current'}</Badge>, sortValue: (row) => row.is_former },
-      { key: 'dates', header: 'Dates', render: (row) => `${formatDate(row.valid_from)} → ${formatDate(row.valid_to)}`, sortValue: (row) => row.valid_from ?? '' },
+      { key: 'name', header: t('identifiers.professional.company'), render: (row) => row.name, sortValue: (row) => row.name, filterValue: (row) => row.name },
+      { key: 'position', header: t('identifiers.professional.position'), render: (row) => row.position ?? '—', sortValue: (row) => row.position ?? '', filterValue: (row) => row.position ?? '' },
+      { key: 'domain', header: t('identifiers.professional.domain'), render: (row) => row.professional_domain ?? '—', sortValue: (row) => row.professional_domain ?? '', filterValue: (row) => row.professional_domain ?? '' },
+      { key: 'status', header: t('identifiers.professional.timeline'), render: (row) => <Badge tone={row.is_former ? 'warning' : 'success'}>{row.is_former ? t('identifiers.professional.former') : t('identifiers.professional.current')}</Badge>, sortValue: (row) => row.is_former },
+      { key: 'dates', header: t('identifiers.professional.dates'), render: (row) => `${formatDate(row.valid_from)} → ${formatDate(row.valid_to)}`, sortValue: (row) => row.valid_from ?? '' },
       {
         key: 'actions',
-        header: 'Actions',
+        header: t('common.actions'),
         filterable: false,
         render: (row) => (
           <div className="inline" onClick={(event) => event.stopPropagation()}>
-            <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>Edit</Button>
-            <Button variant="danger" size="sm" onClick={() => setDeleting(row)}>Delete</Button>
+            <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('common.edit')}</Button>
+            <Button variant="danger" size="sm" onClick={() => setDeleting(row)}>{t('common.delete')}</Button>
           </div>
         ),
       },
     ],
-    [],
+    [t],
   )
 
   if (!selectedIdentityId) {
     return (
       <div className="page-stack">
-        <PageHeader title="Professional history" description="Track companies, roles, domains, and professional profiles tied to the active identity." />
+        <PageHeader title={t('identifiers.professional.title')} description={t('identifiers.professional.descriptionFull')} />
         <IdentityRequiredState />
       </div>
     )
   }
 
-  if (loading && !data) return <LoadingState message="Loading professional history…" />
+  if (loading && !data) return <LoadingState message={t('identifiers.professional.loading')} />
   if (error && !data) return <ErrorState message={error} onRetry={() => void refetch()} />
 
   return (
     <div className="page-stack">
-      <PageHeader title="Professional history" description="Track employers, roles, websites, and professional domains." actions={<Button onClick={openCreate}>Add role</Button>} />
+      <PageHeader title={t('identifiers.professional.title')} description={t('identifiers.professional.description')} actions={<Button onClick={openCreate}>{t('identifiers.professional.add')}</Button>} />
       {error && data ? <ErrorState message={error} onRetry={() => void refetch()} /> : null}
-      <DataTable columns={columns} rows={data ?? []} rowKey={(row) => row.id} showFilters onRowClick={openEdit} emptyTitle="No professional history yet" emptyDescription="Add the first company or role to enrich the identity profile." />
-      <Modal open={modalOpen} title={editing ? 'Edit professional role' : 'Add professional role'} onClose={() => setModalOpen(false)} footer={<><Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button><Button onClick={() => void save()} isLoading={submitting}>{editing ? 'Save changes' : 'Create role'}</Button></>}>
+      <DataTable columns={columns} rows={data ?? []} rowKey={(row) => row.id} showFilters onRowClick={openEdit} emptyTitle={t('identifiers.professional.emptyTitle')} emptyDescription={t('identifiers.professional.emptyDescription')} />
+      <Modal open={modalOpen} title={editing ? t('identifiers.professional.editRole') : t('identifiers.professional.addRole')} onClose={() => setModalOpen(false)} footer={<><Button variant="ghost" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button><Button onClick={() => void save()} isLoading={submitting}>{editing ? t('common.saveChanges') : t('identifiers.professional.createRole')}</Button></>}>
         <div className="form-grid">
-          <div className="span-6"><Field label="Company" htmlFor="company-name" required><input id="company-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field></div>
-          <div className="span-6"><Field label="Position" htmlFor="company-position"><input id="company-position" value={form.position} onChange={(event) => setForm((current) => ({ ...current, position: event.target.value }))} /></Field></div>
-          <div className="span-6"><Field label="Website" htmlFor="company-website"><input id="company-website" value={form.website} onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))} /></Field></div>
-          <div className="span-6"><Field label="Professional profile URL" htmlFor="company-profile"><input id="company-profile" value={form.professional_profile_url} onChange={(event) => setForm((current) => ({ ...current, professional_profile_url: event.target.value }))} /></Field></div>
-          <div className="span-6"><Field label="Professional domain" htmlFor="company-domain"><input id="company-domain" value={form.professional_domain} onChange={(event) => setForm((current) => ({ ...current, professional_domain: event.target.value }))} /></Field></div>
-          <div className="span-3"><Field label="Valid from" htmlFor="company-from"><input id="company-from" type="date" value={form.valid_from} onChange={(event) => setForm((current) => ({ ...current, valid_from: event.target.value }))} /></Field></div>
-          <div className="span-3"><Field label="Valid to" htmlFor="company-to"><input id="company-to" type="date" value={form.valid_to} onChange={(event) => setForm((current) => ({ ...current, valid_to: event.target.value }))} /></Field></div>
-          <div className="span-3"><Field label="Former role" htmlFor="company-former"><label className="checkbox-row"><input id="company-former" type="checkbox" checked={form.is_former} onChange={(event) => setForm((current) => ({ ...current, is_former: event.target.checked }))} /><span>{form.is_former ? 'Former' : 'Current'}</span></label></Field></div>
-          <div className="span-12"><Field label="Notes" htmlFor="company-notes"><textarea id="company-notes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></Field></div>
+          <div className="span-6"><Field label={t('identifiers.professional.company')} htmlFor="company-name" required><input id="company-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field></div>
+          <div className="span-6"><Field label={t('identifiers.professional.position')} htmlFor="company-position"><input id="company-position" value={form.position} onChange={(event) => setForm((current) => ({ ...current, position: event.target.value }))} /></Field></div>
+          <div className="span-6"><Field label={t('identifiers.professional.field.website')} htmlFor="company-website"><input id="company-website" value={form.website} onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))} /></Field></div>
+          <div className="span-6"><Field label={t('identifiers.professional.field.profileUrl')} htmlFor="company-profile"><input id="company-profile" value={form.professional_profile_url} onChange={(event) => setForm((current) => ({ ...current, professional_profile_url: event.target.value }))} /></Field></div>
+          <div className="span-6"><Field label={t('identifiers.professional.field.domain')} htmlFor="company-domain"><input id="company-domain" value={form.professional_domain} onChange={(event) => setForm((current) => ({ ...current, professional_domain: event.target.value }))} /></Field></div>
+          <div className="span-3"><Field label={t('identifiers.field.validFrom')} htmlFor="company-from"><input id="company-from" type="date" value={form.valid_from} onChange={(event) => setForm((current) => ({ ...current, valid_from: event.target.value }))} /></Field></div>
+          <div className="span-3"><Field label={t('identifiers.field.validTo')} htmlFor="company-to"><input id="company-to" type="date" value={form.valid_to} onChange={(event) => setForm((current) => ({ ...current, valid_to: event.target.value }))} /></Field></div>
+          <div className="span-3"><Field label={t('identifiers.professional.field.formerRole')} htmlFor="company-former"><label className="checkbox-row"><input id="company-former" type="checkbox" checked={form.is_former} onChange={(event) => setForm((current) => ({ ...current, is_former: event.target.checked }))} /><span>{form.is_former ? t('identifiers.professional.former') : t('identifiers.professional.current')}</span></label></Field></div>
+          <div className="span-12"><Field label={t('common.notes')} htmlFor="company-notes"><textarea id="company-notes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></Field></div>
         </div>
       </Modal>
-      <ConfirmDialog open={Boolean(deleting)} title="Delete professional role" description={<p>Remove this company record from the identity?</p>} onClose={() => setDeleting(null)} onConfirm={() => void destroy()} isLoading={deletingBusy} />
+      <ConfirmDialog open={Boolean(deleting)} title={t('identifiers.professional.delete.title')} description={<p>{t('identifiers.professional.delete.description')}</p>} onClose={() => setDeleting(null)} onConfirm={() => void destroy()} isLoading={deletingBusy} />
     </div>
   )
 }

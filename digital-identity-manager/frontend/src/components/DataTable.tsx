@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
+import { useI18n } from '../i18n'
 import { Button } from './Button'
 import { EmptyState } from './EmptyState'
 
@@ -44,11 +45,12 @@ export function DataTable<T>({
   rows,
   rowKey,
   pageSize = 10,
-  emptyTitle = 'No records yet',
-  emptyDescription = 'Create a new record to populate this table.',
+  emptyTitle,
+  emptyDescription,
   showFilters = false,
   onRowClick,
 }: DataTableProps<T>): JSX.Element {
+  const { t } = useI18n()
   const [sortKey, setSortKey] = useState<string | null>(columns.find((column) => column.sortValue)?.key ?? null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [page, setPage] = useState(1)
@@ -69,7 +71,7 @@ export function DataTable<T>({
     )
 
     if (!sortKey) return filtered
-    const column = columns.find((item) => item.key == sortKey)
+    const column = columns.find((item) => item.key === sortKey)
     if (!column?.sortValue) return filtered
 
     return [...filtered].sort((left, right) =>
@@ -91,7 +93,12 @@ export function DataTable<T>({
   }
 
   if (rows.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />
+    return (
+      <EmptyState
+        title={emptyTitle ?? t('table.emptyTitle')}
+        description={emptyDescription ?? t('table.emptyDescription')}
+      />
+    )
   }
 
   return (
@@ -119,8 +126,8 @@ export function DataTable<T>({
                   <th key={`${column.key}-filter`} className="data-table__filter">
                     {column.filterable === false ? null : (
                       <input
-                        aria-label={`Filter ${column.header}`}
-                        placeholder={`Filter ${column.header}`}
+                        aria-label={t('table.filterColumn', { column: column.header })}
+                        placeholder={t('table.filterColumn', { column: column.header })}
                         value={filters[column.key] ?? ''}
                         onChange={(event) =>
                           setFilters((current) => ({ ...current, [column.key]: event.target.value }))
@@ -149,15 +156,15 @@ export function DataTable<T>({
       </div>
       <div className="data-table__pagination">
         <span className="muted">
-          Showing {pagedRows.length} of {processedRows.length}
+          {t('table.showing', { shown: pagedRows.length, total: processedRows.length })}
         </span>
         <div className="inline">
           <Button variant="ghost" size="sm" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
-            Previous
+            {t('common.previous')}
           </Button>
-          <span className="muted">Page {currentPage} / {totalPages}</span>
+          <span className="muted">{t('table.page', { current: currentPage, total: totalPages })}</span>
           <Button variant="ghost" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>
-            Next
+            {t('common.next')}
           </Button>
         </div>
       </div>

@@ -10,6 +10,7 @@ import { Field } from '../components/Field'
 import { PageHeader } from '../components/PageHeader'
 import { useIdentity } from '../hooks/useIdentity'
 import { useToast } from '../hooks/useToast'
+import { useI18n } from '../i18n'
 import { getErrorDetail, joinLines, maybeNull, splitLines } from '../utils'
 
 interface IdentityFormState {
@@ -54,6 +55,7 @@ const toFormState = (identity: Identity): IdentityFormState => ({
 export function IdentityPage(): JSX.Element {
   const { selectedIdentity, selectedIdentityId, upsertIdentity, removeIdentity } = useIdentity()
   const { addToast } = useToast()
+  const { t } = useI18n()
   const [form, setForm] = useState<IdentityFormState>(emptyForm)
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -70,7 +72,7 @@ export function IdentityPage(): JSX.Element {
 
   const saveIdentity = async () => {
     if (!form.label.trim()) {
-      addToast({ title: 'Identity label required', tone: 'warning' })
+      addToast({ title: t('identity.toast.labelRequired'), tone: 'warning' })
       return
     }
 
@@ -92,9 +94,12 @@ export function IdentityPage(): JSX.Element {
       }
       const saved = selectedIdentityId ? await updateIdentity(selectedIdentityId, payload) : await createIdentity(payload)
       upsertIdentity(saved)
-      addToast({ title: selectedIdentityId ? 'Identity updated' : 'Identity created', tone: 'success' })
+      addToast({
+        title: selectedIdentityId ? t('identity.toast.updated') : t('identity.toast.created'),
+        tone: 'success',
+      })
     } catch (errorValue) {
-      addToast({ title: 'Unable to save identity', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('identity.toast.saveFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setSubmitting(false)
     }
@@ -107,11 +112,11 @@ export function IdentityPage(): JSX.Element {
       const updated = await setAuthorization(selectedIdentityId, checked)
       upsertIdentity(updated)
       addToast({
-        title: checked ? 'Authorisation acknowledged' : 'Authorisation acknowledgement removed',
+        title: checked ? t('identity.toast.authAcknowledged') : t('identity.toast.authRemoved'),
         tone: checked ? 'success' : 'warning',
       })
     } catch (errorValue) {
-      addToast({ title: 'Unable to update acknowledgement', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('identity.toast.authFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setAuthBusy(false)
     }
@@ -123,9 +128,9 @@ export function IdentityPage(): JSX.Element {
     try {
       await deleteIdentity(selectedIdentityId)
       removeIdentity(selectedIdentityId)
-      addToast({ title: 'Identity deleted', tone: 'success' })
+      addToast({ title: t('identity.toast.deleted'), tone: 'success' })
     } catch (errorValue) {
-      addToast({ title: 'Unable to delete identity', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('identity.toast.deleteFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setDeletingBusy(false)
       setDeleting(false)
@@ -135,77 +140,80 @@ export function IdentityPage(): JSX.Element {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Identity profile"
-        description="Maintain the legal and operational core record for the active identity."
-        actions={<Link to="/identity/wizard">Open the 10-step wizard</Link>}
+        title={t('identity.title')}
+        description={t('identity.description')}
+        actions={<Link to="/identity/wizard">{t('identity.openWizardLink')}</Link>}
       />
 
-      <Card title={selectedIdentity ? 'Edit active identity' : 'Create an identity'} description="This record anchors all identifiers, scans, and privacy actions.">
+      <Card
+        title={selectedIdentity ? t('identity.card.editTitle') : t('identity.card.createTitle')}
+        description={t('identity.card.description')}
+      >
         <div className="form-grid">
           <div className="span-6">
-            <Field label="Identity label" htmlFor="identity-label" required>
+            <Field label={t('identity.field.label')} htmlFor="identity-label" required>
               <input id="identity-label" value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} />
             </Field>
           </div>
           <div className="span-6">
-            <Field label="Country" htmlFor="identity-country" hint="ISO country code or country name used by your API.">
+            <Field label={t('common.country')} htmlFor="identity-country" hint={t('identity.field.countryHint')}>
               <input id="identity-country" value={form.country} onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))} />
             </Field>
           </div>
           <div className="span-6">
-            <Field label="First name" htmlFor="identity-first-name">
+            <Field label={t('identity.field.firstName')} htmlFor="identity-first-name">
               <input id="identity-first-name" value={form.first_name} onChange={(event) => setForm((current) => ({ ...current, first_name: event.target.value }))} />
             </Field>
           </div>
           <div className="span-6">
-            <Field label="Last name" htmlFor="identity-last-name">
+            <Field label={t('identity.field.lastName')} htmlFor="identity-last-name">
               <input id="identity-last-name" value={form.last_name} onChange={(event) => setForm((current) => ({ ...current, last_name: event.target.value }))} />
             </Field>
           </div>
           <div className="span-6">
-            <Field label="Birth date" htmlFor="identity-birth-date">
+            <Field label={t('identity.field.birthDate')} htmlFor="identity-birth-date">
               <input id="identity-birth-date" type="date" value={form.birth_date} onChange={(event) => setForm((current) => ({ ...current, birth_date: event.target.value }))} />
             </Field>
           </div>
           <div className="span-12">
-            <Field label="Description" htmlFor="identity-description">
+            <Field label={t('common.description')} htmlFor="identity-description">
               <textarea id="identity-description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
             </Field>
           </div>
           <div className="span-4">
-            <Field label="Name variants" htmlFor="identity-name-variants" hint="One per line">
+            <Field label={t('identity.field.nameVariants')} htmlFor="identity-name-variants" hint={t('identity.field.onePerLine')}>
               <textarea id="identity-name-variants" value={form.name_variants} onChange={(event) => setForm((current) => ({ ...current, name_variants: event.target.value }))} />
             </Field>
           </div>
           <div className="span-4">
-            <Field label="Known aliases" htmlFor="identity-known-aliases" hint="One per line">
+            <Field label={t('identity.field.knownAliases')} htmlFor="identity-known-aliases" hint={t('identity.field.onePerLine')}>
               <textarea id="identity-known-aliases" value={form.known_aliases} onChange={(event) => setForm((current) => ({ ...current, known_aliases: event.target.value }))} />
             </Field>
           </div>
           <div className="span-4">
-            <Field label="Cities" htmlFor="identity-cities" hint="One per line">
+            <Field label={t('identity.field.cities')} htmlFor="identity-cities" hint={t('identity.field.onePerLine')}>
               <textarea id="identity-cities" value={form.cities} onChange={(event) => setForm((current) => ({ ...current, cities: event.target.value }))} />
             </Field>
           </div>
           <div className="span-12">
-            <Field label="Identity notes" htmlFor="identity-notes">
+            <Field label={t('identity.field.notes')} htmlFor="identity-notes">
               <textarea id="identity-notes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
             </Field>
           </div>
         </div>
         <div className="inline" style={{ marginTop: '1rem' }}>
           <Button onClick={() => void saveIdentity()} isLoading={submitting}>
-            {selectedIdentity ? 'Save identity' : 'Create identity'}
+            {selectedIdentity ? t('identity.action.save') : t('identity.action.create')}
           </Button>
           {selectedIdentity ? (
             <Button variant="danger" onClick={() => setDeleting(true)}>
-              Delete identity
+              {t('identity.action.delete')}
             </Button>
           ) : null}
         </div>
       </Card>
 
-      <Card title="Authorisation acknowledgement" description="Certain OSINT and privacy workflows require an explicit acknowledgement before scans can run.">
+      <Card title={t('identity.auth.title')} description={t('identity.auth.description')}>
         {selectedIdentity ? (
           <div className="stack stack--sm">
             <label className="checkbox-row">
@@ -215,19 +223,23 @@ export function IdentityPage(): JSX.Element {
                 disabled={authBusy}
                 onChange={(event) => void toggleAuthorization(event.target.checked)}
               />
-              <span>I own this identity or I have explicit written authorisation to audit it.</span>
+              <span>{t('identity.auth.checkbox')}</span>
             </label>
-            <span className="muted">Acknowledged at: {selectedIdentity.authorization_ack_at ?? 'Not acknowledged yet'}</span>
+            <span className="muted">
+              {t('identity.auth.acknowledgedAt', {
+                value: selectedIdentity.authorization_ack_at ?? t('identity.auth.notAcknowledged'),
+              })}
+            </span>
           </div>
         ) : (
-          <span className="muted">Create an identity first to enable acknowledgement controls.</span>
+          <span className="muted">{t('identity.auth.createFirst')}</span>
         )}
       </Card>
 
       <ConfirmDialog
         open={deleting}
-        title="Delete identity"
-        description={<p>This permanently removes the currently selected identity and its associated frontend selection.</p>}
+        title={t('identity.action.delete')}
+        description={<p>{t('identity.delete.description')}</p>}
         onClose={() => setDeleting(false)}
         onConfirm={() => void destroyIdentity()}
         isLoading={deletingBusy}

@@ -7,10 +7,12 @@ import { PageHeader } from '../components/PageHeader'
 import { RingChart } from '../components/RingChart'
 import { useFetch } from '../hooks/useFetch'
 import { useIdentity } from '../hooks/useIdentity'
+import { useI18n, type TranslationKey } from '../i18n'
 import { formatDateTime } from '../utils'
 
 export function DashboardPage(): JSX.Element {
   const { selectedIdentity, selectedIdentityId, loading: identityLoading } = useIdentity()
+  const { t } = useI18n()
 
   const fetchDashboard = useCallback(async () => {
     if (!selectedIdentityId) {
@@ -25,38 +27,38 @@ export function DashboardPage(): JSX.Element {
 
   const { data, loading, error, refetch } = useFetch(selectedIdentityId ? fetchDashboard : null, [fetchDashboard])
 
-  const stats = useMemo(
+  const stats = useMemo<[TranslationKey, number][]>(
     () =>
       data
         ? [
-            ['Identifiers', data.summary.identifiers],
-            ['Emails', data.summary.emails],
-            ['Phones', data.summary.phones],
-            ['Usernames', data.summary.usernames],
-            ['Addresses', data.summary.addresses],
-            ['Profiles', data.summary.profiles],
-            ['Accounts found', data.summary.accounts_found],
-            ['Relationships confirmed', data.summary.relationships_confirmed],
-            ['Relationships to review', data.summary.relationships_to_review],
-            ['Data brokers', data.summary.data_brokers],
-            ['Deletion TODO', data.summary.deletions_todo],
-            ['Deletion requested', data.summary.deletions_requested],
-            ['Deletion confirmed', data.summary.deletions_confirmed],
-            ['Data reappeared', data.summary.data_reappeared],
-            ['Breaches', data.summary.breaches],
+            ['dashboard.stat.identifiers', data.summary.identifiers],
+            ['dashboard.stat.emails', data.summary.emails],
+            ['dashboard.stat.phones', data.summary.phones],
+            ['dashboard.stat.usernames', data.summary.usernames],
+            ['dashboard.stat.addresses', data.summary.addresses],
+            ['dashboard.stat.profiles', data.summary.profiles],
+            ['dashboard.stat.accountsFound', data.summary.accounts_found],
+            ['dashboard.stat.relationshipsConfirmed', data.summary.relationships_confirmed],
+            ['dashboard.stat.relationshipsToReview', data.summary.relationships_to_review],
+            ['dashboard.stat.dataBrokers', data.summary.data_brokers],
+            ['dashboard.stat.deletionsTodo', data.summary.deletions_todo],
+            ['dashboard.stat.deletionsRequested', data.summary.deletions_requested],
+            ['dashboard.stat.deletionsConfirmed', data.summary.deletions_confirmed],
+            ['dashboard.stat.dataReappeared', data.summary.data_reappeared],
+            ['dashboard.stat.breaches', data.summary.breaches],
           ]
         : [],
     [data],
   )
 
   if (identityLoading && !selectedIdentityId) {
-    return <LoadingState message="Loading identities…" />
+    return <LoadingState message={t('dashboard.loadingIdentities')} />
   }
 
   if (!selectedIdentityId) {
     return (
       <div className="page-stack">
-        <PageHeader title="Dashboard" description="See completeness, timeline, and operational counts for the active identity." />
+        <PageHeader title={t('dashboard.title')} description={t('dashboard.description')} />
         <IdentityRequiredState />
       </div>
     )
@@ -65,8 +67,8 @@ export function DashboardPage(): JSX.Element {
   if (loading && !data) {
     return (
       <div className="page-stack">
-        <PageHeader title="Dashboard" description="See completeness, timeline, and operational counts for the active identity." />
-        <LoadingState message="Loading dashboard summary…" />
+        <PageHeader title={t('dashboard.title')} description={t('dashboard.description')} />
+        <LoadingState message={t('dashboard.loadingSummary')} />
       </div>
     )
   }
@@ -74,7 +76,7 @@ export function DashboardPage(): JSX.Element {
   if (error && !data) {
     return (
       <div className="page-stack">
-        <PageHeader title="Dashboard" description="See completeness, timeline, and operational counts for the active identity." />
+        <PageHeader title={t('dashboard.title')} description={t('dashboard.description')} />
         <ErrorState message={error} onRetry={() => void refetch()} />
       </div>
     )
@@ -83,32 +85,39 @@ export function DashboardPage(): JSX.Element {
   return (
     <div className="page-stack">
       <PageHeader
-        title="Dashboard"
-        description={`Operational overview for ${selectedIdentity?.label ?? 'the active identity'}.`}
+        title={t('dashboard.title')}
+        description={t('dashboard.overviewFor', {
+          identity: selectedIdentity?.label ?? t('dashboard.activeIdentityFallback'),
+        })}
       />
 
       {error && data ? <ErrorState message={error} onRetry={() => void refetch()} /> : null}
 
       <div className="split-grid">
-        <Card title="Completeness score" description={data?.summary.completeness.explanation ?? 'Coverage overview'}>
-          <RingChart score={data?.summary.completeness.score ?? 0} label="Completeness" />
+        <Card
+          title={t('dashboard.completeness.title')}
+          description={data?.summary.completeness.explanation ?? t('dashboard.completeness.fallbackDescription')}
+        >
+          <RingChart score={data?.summary.completeness.score ?? 0} label={t('dashboard.completeness.ringLabel')} />
         </Card>
-        <Card title="Scanning cadence" description="Latest activity and upcoming scheduled scans.">
+        <Card title={t('dashboard.cadence.title')} description={t('dashboard.cadence.description')}>
           <div className="stack stack--sm">
             <div>
-              <strong>Last scan</strong>
+              <strong>{t('dashboard.cadence.lastScan')}</strong>
               <p className="muted">
                 {data?.summary.last_scan
                   ? `${data.summary.last_scan.tool} · ${data.summary.last_scan.scan_type} · ${formatDateTime(
                       data.summary.last_scan.finished_at ?? data.summary.last_scan.created_at,
                     )}`
-                  : 'No completed scan yet.'}
+                  : t('dashboard.cadence.noLastScan')}
               </p>
             </div>
             <div>
-              <strong>Next scheduled scans</strong>
+              <strong>{t('dashboard.cadence.nextScans')}</strong>
               <ul className="list-reset list-grid">
-                {(data?.summary.next_scans ?? []).length === 0 ? <li className="muted">No scheduled scans.</li> : null}
+                {(data?.summary.next_scans ?? []).length === 0 ? (
+                  <li className="muted">{t('dashboard.cadence.noNextScans')}</li>
+                ) : null}
                 {(data?.summary.next_scans ?? []).map((scan) => (
                   <li key={scan.id} className="space-between">
                     <span>
@@ -124,25 +133,25 @@ export function DashboardPage(): JSX.Element {
       </div>
 
       <div className="stats-grid">
-        {stats.map(([label, value]) => (
-          <article key={label} className="stat-card">
-            <div className="stat-card__label">{label}</div>
+        {stats.map(([labelKey, value]) => (
+          <article key={labelKey} className="stat-card">
+            <div className="stat-card__label">{t(labelKey)}</div>
             <div className="stat-card__value">{value}</div>
           </article>
         ))}
       </div>
 
-      <Card title="Completeness breakdown" description="Category-level completeness and remaining gaps.">
+      <Card title={t('dashboard.breakdown.title')} description={t('dashboard.breakdown.description')}>
         <div className="data-table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Category</th>
-                <th>Known</th>
-                <th>Expected</th>
-                <th>Missing</th>
-                <th>Weight</th>
-                <th>Ratio</th>
+                <th>{t('common.category')}</th>
+                <th>{t('dashboard.breakdown.known')}</th>
+                <th>{t('dashboard.breakdown.expected')}</th>
+                <th>{t('dashboard.breakdown.missing')}</th>
+                <th>{t('dashboard.breakdown.weight')}</th>
+                <th>{t('dashboard.breakdown.ratio')}</th>
               </tr>
             </thead>
             <tbody>
@@ -161,9 +170,9 @@ export function DashboardPage(): JSX.Element {
         </div>
       </Card>
 
-      <Card title="Recent timeline" description="The latest events recorded for this identity.">
+      <Card title={t('dashboard.timeline.title')} description={t('dashboard.timeline.description')}>
         <ul className="list-reset list-grid">
-          {(data?.timeline ?? []).length === 0 ? <li className="muted">No timeline entries yet.</li> : null}
+          {(data?.timeline ?? []).length === 0 ? <li className="muted">{t('dashboard.timeline.empty')}</li> : null}
           {(data?.timeline ?? []).map((event) => (
             <li key={event.id} className="card" style={{ padding: '1rem' }}>
               <div className="space-between">

@@ -13,6 +13,7 @@ import { PageHeader } from '../components/PageHeader'
 import { useFetch } from '../hooks/useFetch'
 import { useIdentity } from '../hooks/useIdentity'
 import { useToast } from '../hooks/useToast'
+import { useI18n, type TranslationKey } from '../i18n'
 import { formatDateTime, getErrorDetail, maybeNull } from '../utils'
 
 interface DeletionFormState {
@@ -29,6 +30,15 @@ interface DeletionFormState {
 }
 
 const statuses: DeletionRequest['status'][] = ['TODO', 'REQUESTED', 'IN_PROGRESS', 'CONFIRMED', 'REFUSED', 'REAPPEARED']
+
+const statusLabelKeys: Record<DeletionRequest['status'], TranslationKey> = {
+  TODO: 'privacy.deletions.status.TODO',
+  REQUESTED: 'privacy.deletions.status.REQUESTED',
+  IN_PROGRESS: 'privacy.deletions.status.IN_PROGRESS',
+  CONFIRMED: 'privacy.deletions.status.CONFIRMED',
+  REFUSED: 'privacy.deletions.status.REFUSED',
+  REAPPEARED: 'privacy.deletions.status.REAPPEARED',
+}
 
 const emptyForm: DeletionFormState = {
   finding_id: '',
@@ -59,6 +69,7 @@ const toFormState = (item: DeletionRequest): DeletionFormState => ({
 export function DeletionsPage(): JSX.Element {
   const { selectedIdentityId } = useIdentity()
   const { addToast } = useToast()
+  const { t } = useI18n()
   const [statusFilter, setStatusFilter] = useState('')
   const [editing, setEditing] = useState<DeletionRequest | null>(null)
   const [form, setForm] = useState<DeletionFormState>(emptyForm)
@@ -114,15 +125,15 @@ export function DeletionsPage(): JSX.Element {
       }
       if (editing) {
         await updateDeletionRequest(editing.id, payload)
-        addToast({ title: 'Deletion request updated', tone: 'success' })
+        addToast({ title: t('privacy.deletions.toast.updated'), tone: 'success' })
       } else {
         await createDeletionRequest(payload)
-        addToast({ title: 'Deletion request created', tone: 'success' })
+        addToast({ title: t('privacy.deletions.toast.created'), tone: 'success' })
       }
       setModalOpen(false)
       await refetch()
     } catch (errorValue) {
-      addToast({ title: 'Unable to save deletion request', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('privacy.deletions.toast.saveFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setSubmitting(false)
     }
@@ -133,11 +144,11 @@ export function DeletionsPage(): JSX.Element {
     setDeletingBusy(true)
     try {
       await deleteDeletionRequest(deleting.id)
-      addToast({ title: 'Deletion request deleted', tone: 'success' })
+      addToast({ title: t('privacy.deletions.toast.deleted'), tone: 'success' })
       setDeleting(null)
       await refetch()
     } catch (errorValue) {
-      addToast({ title: 'Unable to delete deletion request', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('privacy.deletions.toast.deleteFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setDeletingBusy(false)
     }
@@ -146,25 +157,25 @@ export function DeletionsPage(): JSX.Element {
   if (!selectedIdentityId) {
     return (
       <div className="page-stack">
-        <PageHeader title="Deletion requests" description="Track opt-out and erasure workflows by broker and verification status." />
+        <PageHeader title={t('privacy.deletions.title')} description={t('privacy.deletions.intro')} />
         <IdentityRequiredState />
       </div>
     )
   }
 
-  if (loading && !data) return <LoadingState message="Loading deletion requests…" />
+  if (loading && !data) return <LoadingState message={t('privacy.deletions.loading')} />
   if (error && !data) return <ErrorState message={error} onRetry={() => void refetch()} />
 
   return (
     <div className="page-stack">
-      <PageHeader title="Deletion requests" description="Group requests by status and keep confirmation and recheck dates current." actions={<Button onClick={openCreate}>Add request</Button>} />
-      <Card title="Filter" description="Optionally focus on one status.">
+      <PageHeader title={t('privacy.deletions.title')} description={t('privacy.deletions.description')} actions={<Button onClick={openCreate}>{t('privacy.deletions.add')}</Button>} />
+      <Card title={t('privacy.deletions.filter.title')} description={t('privacy.deletions.filter.description')}>
         <div className="form-grid">
           <div className="span-4">
-            <Field label="Status" htmlFor="deletion-status-filter">
+            <Field label={t('common.status')} htmlFor="deletion-status-filter">
               <select id="deletion-status-filter" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                <option value="">All statuses</option>
-                {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                <option value="">{t('privacy.deletions.filter.allStatuses')}</option>
+                {statuses.map((status) => <option key={status} value={status}>{t(statusLabelKeys[status])}</option>)}
               </select>
             </Field>
           </div>
@@ -175,47 +186,47 @@ export function DeletionsPage(): JSX.Element {
         {statuses.map((status) => (
           <section key={status} className="kanban__column">
             <div className="space-between">
-              <strong>{status}</strong>
+              <strong>{t(statusLabelKeys[status])}</strong>
               <Badge tone="primary">{grouped.get(status)?.length ?? 0}</Badge>
             </div>
-            {(grouped.get(status) ?? []).length === 0 ? <span className="muted">No items.</span> : null}
+            {(grouped.get(status) ?? []).length === 0 ? <span className="muted">{t('privacy.deletions.empty')}</span> : null}
             {(grouped.get(status) ?? []).map((item) => (
               <article key={item.id} className="kanban__card">
                 <div className="space-between">
-                  <strong>{item.method ?? 'Unspecified method'}</strong>
-                  <Badge tone={status === 'CONFIRMED' ? 'success' : status === 'REFUSED' ? 'danger' : 'warning'}>{item.status}</Badge>
+                  <strong>{item.method ?? t('privacy.deletions.unspecifiedMethod')}</strong>
+                  <Badge tone={status === 'CONFIRMED' ? 'success' : status === 'REFUSED' ? 'danger' : 'warning'}>{t(statusLabelKeys[item.status])}</Badge>
                 </div>
                 <div className="stack stack--sm">
-                  <span className="muted">Requested: {formatDateTime(item.requested_at)}</span>
-                  <span className="muted">Verified: {formatDateTime(item.verified_at)}</span>
-                  <span className="muted">Next check: {formatDateTime(item.next_check)}</span>
-                  <span className="muted">Confirmation: {item.confirmation ?? '—'}</span>
-                  {item.confirmation_url ? <a href={item.confirmation_url} target="_blank" rel="noreferrer">Confirmation link</a> : null}
+                  <span className="muted">{t('privacy.deletions.card.requested', { date: formatDateTime(item.requested_at) })}</span>
+                  <span className="muted">{t('privacy.deletions.card.verified', { date: formatDateTime(item.verified_at) })}</span>
+                  <span className="muted">{t('privacy.deletions.card.nextCheck', { date: formatDateTime(item.next_check) })}</span>
+                  <span className="muted">{t('privacy.deletions.card.confirmation', { value: item.confirmation ?? '—' })}</span>
+                  {item.confirmation_url ? <a href={item.confirmation_url} target="_blank" rel="noreferrer">{t('privacy.deletions.card.confirmationLink')}</a> : null}
                 </div>
                 <div className="inline" style={{ marginTop: '0.75rem' }}>
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Edit</Button>
-                  <Button variant="danger" size="sm" onClick={() => setDeleting(item)}>Delete</Button>
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>{t('common.edit')}</Button>
+                  <Button variant="danger" size="sm" onClick={() => setDeleting(item)}>{t('common.delete')}</Button>
                 </div>
               </article>
             ))}
           </section>
         ))}
       </div>
-      <Modal open={modalOpen} title={editing ? 'Edit deletion request' : 'Add deletion request'} onClose={() => setModalOpen(false)} size="lg" footer={<><Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button><Button onClick={() => void save()} isLoading={submitting}>{editing ? 'Save changes' : 'Create request'}</Button></>}>
+      <Modal open={modalOpen} title={editing ? t('privacy.deletions.modal.editTitle') : t('privacy.deletions.modal.createTitle')} onClose={() => setModalOpen(false)} size="lg" footer={<><Button variant="ghost" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button><Button onClick={() => void save()} isLoading={submitting}>{editing ? t('common.saveChanges') : t('privacy.deletions.modal.create')}</Button></>}>
         <div className="form-grid">
-          <div className="span-4"><Field label="Status" htmlFor="deletion-status"><select id="deletion-status" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as DeletionRequest['status'] }))}>{statuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></Field></div>
-          <div className="span-4"><Field label="Method" htmlFor="deletion-method"><input id="deletion-method" value={form.method} onChange={(event) => setForm((current) => ({ ...current, method: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Broker ID" htmlFor="deletion-broker-id"><input id="deletion-broker-id" value={form.broker_id} onChange={(event) => setForm((current) => ({ ...current, broker_id: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Finding ID" htmlFor="deletion-finding-id"><input id="deletion-finding-id" value={form.finding_id} onChange={(event) => setForm((current) => ({ ...current, finding_id: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Requested at" htmlFor="deletion-requested"><input id="deletion-requested" type="datetime-local" value={form.requested_at} onChange={(event) => setForm((current) => ({ ...current, requested_at: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Verified at" htmlFor="deletion-verified"><input id="deletion-verified" type="datetime-local" value={form.verified_at} onChange={(event) => setForm((current) => ({ ...current, verified_at: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Next check" htmlFor="deletion-next-check"><input id="deletion-next-check" type="datetime-local" value={form.next_check} onChange={(event) => setForm((current) => ({ ...current, next_check: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Confirmation" htmlFor="deletion-confirmation"><input id="deletion-confirmation" value={form.confirmation} onChange={(event) => setForm((current) => ({ ...current, confirmation: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Confirmation URL" htmlFor="deletion-confirmation-url"><input id="deletion-confirmation-url" value={form.confirmation_url} onChange={(event) => setForm((current) => ({ ...current, confirmation_url: event.target.value }))} /></Field></div>
-          <div className="span-12"><Field label="Notes" htmlFor="deletion-notes"><textarea id="deletion-notes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('common.status')} htmlFor="deletion-status"><select id="deletion-status" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as DeletionRequest['status'] }))}>{statuses.map((status) => <option key={status} value={status}>{t(statusLabelKeys[status])}</option>)}</select></Field></div>
+          <div className="span-4"><Field label={t('privacy.deletions.field.method')} htmlFor="deletion-method"><input id="deletion-method" value={form.method} onChange={(event) => setForm((current) => ({ ...current, method: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('privacy.deletions.field.brokerId')} htmlFor="deletion-broker-id"><input id="deletion-broker-id" value={form.broker_id} onChange={(event) => setForm((current) => ({ ...current, broker_id: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('privacy.deletions.field.findingId')} htmlFor="deletion-finding-id"><input id="deletion-finding-id" value={form.finding_id} onChange={(event) => setForm((current) => ({ ...current, finding_id: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('privacy.deletions.field.requestedAt')} htmlFor="deletion-requested"><input id="deletion-requested" type="datetime-local" value={form.requested_at} onChange={(event) => setForm((current) => ({ ...current, requested_at: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('privacy.deletions.field.verifiedAt')} htmlFor="deletion-verified"><input id="deletion-verified" type="datetime-local" value={form.verified_at} onChange={(event) => setForm((current) => ({ ...current, verified_at: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('privacy.deletions.field.nextCheck')} htmlFor="deletion-next-check"><input id="deletion-next-check" type="datetime-local" value={form.next_check} onChange={(event) => setForm((current) => ({ ...current, next_check: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('privacy.deletions.field.confirmation')} htmlFor="deletion-confirmation"><input id="deletion-confirmation" value={form.confirmation} onChange={(event) => setForm((current) => ({ ...current, confirmation: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('privacy.deletions.field.confirmationUrl')} htmlFor="deletion-confirmation-url"><input id="deletion-confirmation-url" value={form.confirmation_url} onChange={(event) => setForm((current) => ({ ...current, confirmation_url: event.target.value }))} /></Field></div>
+          <div className="span-12"><Field label={t('common.notes')} htmlFor="deletion-notes"><textarea id="deletion-notes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></Field></div>
         </div>
       </Modal>
-      <ConfirmDialog open={Boolean(deleting)} title="Delete deletion request" description={<p>Delete this deletion request?</p>} onClose={() => setDeleting(null)} onConfirm={() => void destroy()} isLoading={deletingBusy} />
+      <ConfirmDialog open={Boolean(deleting)} title={t('privacy.deletions.confirmDelete.title')} description={<p>{t('privacy.deletions.confirmDelete.description')}</p>} onClose={() => setDeleting(null)} onConfirm={() => void destroy()} isLoading={deletingBusy} />
     </div>
   )
 }

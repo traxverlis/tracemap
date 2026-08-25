@@ -15,6 +15,7 @@ import { PageHeader } from '../components/PageHeader'
 import { useFetch } from '../hooks/useFetch'
 import { useIdentity } from '../hooks/useIdentity'
 import { useToast } from '../hooks/useToast'
+import { useI18n } from '../i18n'
 import { formatDateTime, getErrorDetail, maybeNull } from '../utils'
 
 interface BrokerFormState {
@@ -65,6 +66,7 @@ const toFormState = (broker: DataBroker): BrokerFormState => ({
 export function DataBrokersPage(): JSX.Element {
   const { selectedIdentityId } = useIdentity()
   const { addToast } = useToast()
+  const { t } = useI18n()
   const [country, setCountry] = useState('')
   const [category, setCategory] = useState('')
   const [query, setQuery] = useState('')
@@ -102,7 +104,7 @@ export function DataBrokersPage(): JSX.Element {
 
   const save = async () => {
     if (!form.name.trim()) {
-      addToast({ title: 'Broker name required', tone: 'warning' })
+      addToast({ title: t('privacy.brokers.toast.nameRequired'), tone: 'warning' })
       return
     }
     setSubmitting(true)
@@ -123,15 +125,15 @@ export function DataBrokersPage(): JSX.Element {
       }
       if (editing) {
         await updateDataBroker(editing.id, payload)
-        addToast({ title: 'Data broker updated', tone: 'success' })
+        addToast({ title: t('privacy.brokers.toast.updated'), tone: 'success' })
       } else {
         await createDataBroker(payload)
-        addToast({ title: 'Data broker created', tone: 'success' })
+        addToast({ title: t('privacy.brokers.toast.created'), tone: 'success' })
       }
       setModalOpen(false)
       await refetch()
     } catch (errorValue) {
-      addToast({ title: 'Unable to save data broker', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('privacy.brokers.toast.saveFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setSubmitting(false)
     }
@@ -142,11 +144,11 @@ export function DataBrokersPage(): JSX.Element {
     setDeletingBusy(true)
     try {
       await deleteDataBroker(deleting.id)
-      addToast({ title: 'Data broker deleted', tone: 'success' })
+      addToast({ title: t('privacy.brokers.toast.deleted'), tone: 'success' })
       setDeleting(null)
       await refetch()
     } catch (errorValue) {
-      addToast({ title: 'Unable to delete data broker', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('privacy.brokers.toast.deleteFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setDeletingBusy(false)
     }
@@ -154,14 +156,14 @@ export function DataBrokersPage(): JSX.Element {
 
   const createRequest = async (broker: DataBroker) => {
     if (!selectedIdentityId) {
-      addToast({ title: 'Select an identity first', description: 'Deletion requests must be associated with an identity.', tone: 'warning' })
+      addToast({ title: t('privacy.brokers.toast.identityRequired'), description: t('privacy.brokers.toast.identityRequiredDescription'), tone: 'warning' })
       return
     }
     try {
       await createDeletionRequest({ identity_id: selectedIdentityId, broker_id: broker.id, status: 'TODO', method: broker.optout_method })
-      addToast({ title: 'Deletion request created', description: `Created a TODO request for ${broker.name}.`, tone: 'success' })
+      addToast({ title: t('privacy.brokers.toast.requestCreated'), description: t('privacy.brokers.toast.requestCreatedDescription', { name: broker.name }), tone: 'success' })
     } catch (errorValue) {
-      addToast({ title: 'Unable to create deletion request', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('privacy.brokers.toast.requestFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     }
   }
 
@@ -169,10 +171,10 @@ export function DataBrokersPage(): JSX.Element {
     setImporting(true)
     try {
       const response = await importCatalog()
-      addToast({ title: 'Catalog import finished', description: `Imported ${response.imported}, skipped ${response.skipped}.`, tone: 'success' })
+      addToast({ title: t('privacy.brokers.toast.importFinished'), description: t('privacy.brokers.toast.importFinishedDescription', { imported: response.imported, skipped: response.skipped }), tone: 'success' })
       await refetch()
     } catch (errorValue) {
-      addToast({ title: 'Catalog import failed', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('privacy.brokers.toast.importFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setImporting(false)
     }
@@ -180,49 +182,49 @@ export function DataBrokersPage(): JSX.Element {
 
   const columns = useMemo<DataTableColumn<DataBroker>[]>(
     () => [
-      { key: 'name', header: 'Name', render: (row) => row.name, sortValue: (row) => row.name, filterValue: (row) => row.name },
-      { key: 'country', header: 'Country', render: (row) => row.country ?? '—', sortValue: (row) => row.country ?? '', filterValue: (row) => row.country ?? '' },
-      { key: 'category', header: 'Category', render: (row) => row.category ?? '—', sortValue: (row) => row.category ?? '', filterValue: (row) => row.category ?? '' },
-      { key: 'optout', header: 'Opt-out URL', render: (row) => row.optout_url ? <a href={row.optout_url} target="_blank" rel="noreferrer">Open</a> : '—', sortValue: (row) => row.optout_url ?? '', filterValue: (row) => row.optout_url ?? '' },
-      { key: 'requirements', header: 'Requires', filterable: false, render: (row) => <div className="inline">{row.requires_email ? <Badge tone="warning">Email</Badge> : null}{row.requires_phone ? <Badge tone="warning">Phone</Badge> : null}{row.requires_identity_document ? <Badge tone="danger">ID doc</Badge> : null}</div> },
-      { key: 'last_checked', header: 'Last checked', render: (row) => formatDateTime(row.last_checked), sortValue: (row) => row.last_checked ?? '' },
-      { key: 'actions', header: 'Actions', filterable: false, render: (row) => <div className="inline" onClick={(event) => event.stopPropagation()}><Button variant="secondary" size="sm" disabled={!selectedIdentityId} title={selectedIdentityId ? 'Create deletion request' : 'Select an identity first'} onClick={() => void createRequest(row)}>Create deletion</Button><Button variant="ghost" size="sm" onClick={() => openEdit(row)}>Edit</Button><Button variant="danger" size="sm" onClick={() => setDeleting(row)}>Delete</Button></div> },
+      { key: 'name', header: t('common.name'), render: (row) => row.name, sortValue: (row) => row.name, filterValue: (row) => row.name },
+      { key: 'country', header: t('common.country'), render: (row) => row.country ?? '—', sortValue: (row) => row.country ?? '', filterValue: (row) => row.country ?? '' },
+      { key: 'category', header: t('common.category'), render: (row) => row.category ?? '—', sortValue: (row) => row.category ?? '', filterValue: (row) => row.category ?? '' },
+      { key: 'optout', header: t('privacy.brokers.column.optoutUrl'), render: (row) => row.optout_url ? <a href={row.optout_url} target="_blank" rel="noreferrer">{t('common.open')}</a> : '—', sortValue: (row) => row.optout_url ?? '', filterValue: (row) => row.optout_url ?? '' },
+      { key: 'requirements', header: t('privacy.brokers.column.requires'), filterable: false, render: (row) => <div className="inline">{row.requires_email ? <Badge tone="warning">{t('privacy.brokers.requires.email')}</Badge> : null}{row.requires_phone ? <Badge tone="warning">{t('privacy.brokers.requires.phone')}</Badge> : null}{row.requires_identity_document ? <Badge tone="danger">{t('privacy.brokers.requires.idDocument')}</Badge> : null}</div> },
+      { key: 'last_checked', header: t('privacy.brokers.column.lastChecked'), render: (row) => formatDateTime(row.last_checked), sortValue: (row) => row.last_checked ?? '' },
+      { key: 'actions', header: t('common.actions'), filterable: false, render: (row) => <div className="inline" onClick={(event) => event.stopPropagation()}><Button variant="secondary" size="sm" disabled={!selectedIdentityId} title={selectedIdentityId ? t('privacy.brokers.action.createDeletionTitle') : t('privacy.brokers.action.identityRequiredTitle')} onClick={() => void createRequest(row)}>{t('privacy.brokers.action.createDeletion')}</Button><Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t('common.edit')}</Button><Button variant="danger" size="sm" onClick={() => setDeleting(row)}>{t('common.delete')}</Button></div> },
     ],
-    [selectedIdentityId],
+    [selectedIdentityId, t],
   )
 
-  if (loading && !data) return <LoadingState message="Loading data brokers…" />
+  if (loading && !data) return <LoadingState message={t('privacy.brokers.loading')} />
   if (error && !data) return <ErrorState message={error} onRetry={() => void refetch()} />
 
   return (
     <div className="page-stack">
-      <PageHeader title="Data brokers" description="Catalog data brokers, search URLs, and opt-out workflows without fabricating any URLs or methods." actions={<div className="inline"><Button variant="secondary" onClick={() => void runImport()} isLoading={importing}>Import catalog</Button><Button onClick={openCreate}>Add broker</Button></div>} />
-      <Card title="Filters" description="Search by country, category, or free text.">
+      <PageHeader title={t('privacy.brokers.title')} description={t('privacy.brokers.description')} actions={<div className="inline"><Button variant="secondary" onClick={() => void runImport()} isLoading={importing}>{t('privacy.brokers.importCatalog')}</Button><Button onClick={openCreate}>{t('privacy.brokers.add')}</Button></div>} />
+      <Card title={t('privacy.brokers.filters.title')} description={t('privacy.brokers.filters.description')}>
         <div className="form-grid">
-          <div className="span-4"><Field label="Country" htmlFor="broker-country-filter"><input id="broker-country-filter" value={country} onChange={(event) => setCountry(event.target.value)} /></Field></div>
-          <div className="span-4"><Field label="Category" htmlFor="broker-category-filter"><input id="broker-category-filter" value={category} onChange={(event) => setCategory(event.target.value)} /></Field></div>
-          <div className="span-4"><Field label="Search" htmlFor="broker-query-filter"><input id="broker-query-filter" value={query} onChange={(event) => setQuery(event.target.value)} /></Field></div>
+          <div className="span-4"><Field label={t('common.country')} htmlFor="broker-country-filter"><input id="broker-country-filter" value={country} onChange={(event) => setCountry(event.target.value)} /></Field></div>
+          <div className="span-4"><Field label={t('common.category')} htmlFor="broker-category-filter"><input id="broker-category-filter" value={category} onChange={(event) => setCategory(event.target.value)} /></Field></div>
+          <div className="span-4"><Field label={t('privacy.brokers.filters.search')} htmlFor="broker-query-filter"><input id="broker-query-filter" value={query} onChange={(event) => setQuery(event.target.value)} /></Field></div>
         </div>
       </Card>
       {error && data ? <ErrorState message={error} onRetry={() => void refetch()} /> : null}
-      <DataTable columns={columns} rows={data ?? []} rowKey={(row) => row.id} onRowClick={openEdit} emptyTitle="No data brokers found" emptyDescription="Create or import the catalog to manage privacy removal workflows." />
-      <Modal open={modalOpen} title={editing ? 'Edit data broker' : 'Add data broker'} onClose={() => setModalOpen(false)} size="lg" footer={<><Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button><Button onClick={() => void save()} isLoading={submitting}>{editing ? 'Save changes' : 'Create broker'}</Button></>}>
+      <DataTable columns={columns} rows={data ?? []} rowKey={(row) => row.id} onRowClick={openEdit} emptyTitle={t('privacy.brokers.empty.title')} emptyDescription={t('privacy.brokers.empty.description')} />
+      <Modal open={modalOpen} title={editing ? t('privacy.brokers.modal.editTitle') : t('privacy.brokers.modal.createTitle')} onClose={() => setModalOpen(false)} size="lg" footer={<><Button variant="ghost" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button><Button onClick={() => void save()} isLoading={submitting}>{editing ? t('common.saveChanges') : t('privacy.brokers.modal.create')}</Button></>}>
         <div className="form-grid">
-          <div className="span-6"><Field label="Name" htmlFor="broker-name" required><input id="broker-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field></div>
-          <div className="span-6"><Field label="Domain" htmlFor="broker-domain"><input id="broker-domain" value={form.domain} onChange={(event) => setForm((current) => ({ ...current, domain: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Country" htmlFor="broker-country"><input id="broker-country" value={form.country} onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Category" htmlFor="broker-category"><input id="broker-category" value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} /></Field></div>
-          <div className="span-4"><Field label="Opt-out method" htmlFor="broker-method"><input id="broker-method" value={form.optout_method} onChange={(event) => setForm((current) => ({ ...current, optout_method: event.target.value }))} /></Field></div>
-          <div className="span-6"><Field label="Search URL" htmlFor="broker-search-url"><input id="broker-search-url" value={form.search_url} onChange={(event) => setForm((current) => ({ ...current, search_url: event.target.value }))} /></Field></div>
-          <div className="span-6"><Field label="Opt-out URL" htmlFor="broker-optout-url" hint="Enter only what is provided by your API or research."><input id="broker-optout-url" value={form.optout_url} onChange={(event) => setForm((current) => ({ ...current, optout_url: event.target.value }))} /></Field></div>
-          <div className="span-3"><Field label="Requires email" htmlFor="broker-requires-email"><label className="checkbox-row"><input id="broker-requires-email" type="checkbox" checked={form.requires_email} onChange={(event) => setForm((current) => ({ ...current, requires_email: event.target.checked }))} /><span>{form.requires_email ? 'Yes' : 'No'}</span></label></Field></div>
-          <div className="span-3"><Field label="Requires phone" htmlFor="broker-requires-phone"><label className="checkbox-row"><input id="broker-requires-phone" type="checkbox" checked={form.requires_phone} onChange={(event) => setForm((current) => ({ ...current, requires_phone: event.target.checked }))} /><span>{form.requires_phone ? 'Yes' : 'No'}</span></label></Field></div>
-          <div className="span-3"><Field label="Requires ID document" htmlFor="broker-requires-id"><label className="checkbox-row"><input id="broker-requires-id" type="checkbox" checked={form.requires_identity_document} onChange={(event) => setForm((current) => ({ ...current, requires_identity_document: event.target.checked }))} /><span>{form.requires_identity_document ? 'Yes' : 'No'}</span></label></Field></div>
-          <div className="span-3"><Field label="Automation possible" htmlFor="broker-automation"><label className="checkbox-row"><input id="broker-automation" type="checkbox" checked={form.automation_possible} onChange={(event) => setForm((current) => ({ ...current, automation_possible: event.target.checked }))} /><span>{form.automation_possible ? 'Yes' : 'No'}</span></label></Field></div>
-          <div className="span-12"><Field label="Notes" htmlFor="broker-notes"><textarea id="broker-notes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></Field></div>
+          <div className="span-6"><Field label={t('common.name')} htmlFor="broker-name" required><input id="broker-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field></div>
+          <div className="span-6"><Field label={t('privacy.brokers.field.domain')} htmlFor="broker-domain"><input id="broker-domain" value={form.domain} onChange={(event) => setForm((current) => ({ ...current, domain: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('common.country')} htmlFor="broker-country"><input id="broker-country" value={form.country} onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('common.category')} htmlFor="broker-category"><input id="broker-category" value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} /></Field></div>
+          <div className="span-4"><Field label={t('privacy.brokers.field.optoutMethod')} htmlFor="broker-method"><input id="broker-method" value={form.optout_method} onChange={(event) => setForm((current) => ({ ...current, optout_method: event.target.value }))} /></Field></div>
+          <div className="span-6"><Field label={t('privacy.brokers.field.searchUrl')} htmlFor="broker-search-url"><input id="broker-search-url" value={form.search_url} onChange={(event) => setForm((current) => ({ ...current, search_url: event.target.value }))} /></Field></div>
+          <div className="span-6"><Field label={t('privacy.brokers.field.optoutUrl')} htmlFor="broker-optout-url" hint={t('privacy.brokers.field.optoutUrlHint')}><input id="broker-optout-url" value={form.optout_url} onChange={(event) => setForm((current) => ({ ...current, optout_url: event.target.value }))} /></Field></div>
+          <div className="span-3"><Field label={t('privacy.brokers.field.requiresEmail')} htmlFor="broker-requires-email"><label className="checkbox-row"><input id="broker-requires-email" type="checkbox" checked={form.requires_email} onChange={(event) => setForm((current) => ({ ...current, requires_email: event.target.checked }))} /><span>{form.requires_email ? t('common.yes') : t('common.no')}</span></label></Field></div>
+          <div className="span-3"><Field label={t('privacy.brokers.field.requiresPhone')} htmlFor="broker-requires-phone"><label className="checkbox-row"><input id="broker-requires-phone" type="checkbox" checked={form.requires_phone} onChange={(event) => setForm((current) => ({ ...current, requires_phone: event.target.checked }))} /><span>{form.requires_phone ? t('common.yes') : t('common.no')}</span></label></Field></div>
+          <div className="span-3"><Field label={t('privacy.brokers.field.requiresIdDocument')} htmlFor="broker-requires-id"><label className="checkbox-row"><input id="broker-requires-id" type="checkbox" checked={form.requires_identity_document} onChange={(event) => setForm((current) => ({ ...current, requires_identity_document: event.target.checked }))} /><span>{form.requires_identity_document ? t('common.yes') : t('common.no')}</span></label></Field></div>
+          <div className="span-3"><Field label={t('privacy.brokers.field.automationPossible')} htmlFor="broker-automation"><label className="checkbox-row"><input id="broker-automation" type="checkbox" checked={form.automation_possible} onChange={(event) => setForm((current) => ({ ...current, automation_possible: event.target.checked }))} /><span>{form.automation_possible ? t('common.yes') : t('common.no')}</span></label></Field></div>
+          <div className="span-12"><Field label={t('common.notes')} htmlFor="broker-notes"><textarea id="broker-notes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></Field></div>
         </div>
       </Modal>
-      <ConfirmDialog open={Boolean(deleting)} title="Delete data broker" description={<p>Delete {deleting?.name} from the catalog?</p>} onClose={() => setDeleting(null)} onConfirm={() => void destroy()} isLoading={deletingBusy} />
+      <ConfirmDialog open={Boolean(deleting)} title={t('privacy.brokers.confirmDelete.title')} description={<p>{t('privacy.brokers.confirmDelete.description', { name: deleting?.name ?? '' })}</p>} onClose={() => setDeleting(null)} onConfirm={() => void destroy()} isLoading={deletingBusy} />
     </div>
   )
 }

@@ -1,3 +1,6 @@
+import { getActiveLocale } from './i18n/active'
+import { translate } from './i18n/translate'
+
 export function cn(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(' ')
 }
@@ -12,28 +15,28 @@ export function getErrorDetail(error: unknown): string {
       return error.message
     }
   }
-  return 'Something went wrong.'
+  return translate(getActiveLocale(), 'common.unknownError')
 }
 
 export function formatDate(value: string | null | undefined): string {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date)
+  return new Intl.DateTimeFormat(getActiveLocale(), { dateStyle: 'medium' }).format(date)
 }
 
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(getActiveLocale(), {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date)
 }
 
 export function formatBoolean(value: boolean): string {
-  return value ? 'Yes' : 'No'
+  return translate(getActiveLocale(), value ? 'common.yes' : 'common.no')
 }
 
 export function prettyJson(value: unknown): string {
@@ -44,7 +47,7 @@ export function safeParseJson(text: string): Record<string, unknown> {
   if (!text.trim()) return {}
   const parsed: unknown = JSON.parse(text)
   if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-    throw new Error('Parameters JSON must be an object.')
+    throw new Error(translate(getActiveLocale(), 'common.jsonMustBeObject'))
   }
   return parsed as Record<string, unknown>
 }

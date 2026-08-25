@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { GraphEdge, GraphNode } from '../api/types'
+import { useI18n, type TranslationKey, type Translator } from '../i18n'
 
 interface PositionedNode extends GraphNode {
   x: number
@@ -16,6 +17,29 @@ interface RelationshipGraphProps {
 }
 
 const VIEW_WIDTH = 1000
+
+const NODE_TYPE_KEYS: Record<string, TranslationKey> = {
+  identity: 'findings.graph.node.identity',
+  email: 'findings.graph.node.email',
+  phone: 'findings.graph.node.phone',
+  username: 'findings.graph.node.username',
+  name: 'findings.graph.node.name',
+  address: 'findings.graph.node.address',
+  company: 'findings.graph.node.company',
+  domain: 'findings.graph.node.domain',
+  profile: 'findings.graph.node.profile',
+  account: 'findings.graph.node.account',
+  finding: 'findings.graph.node.finding',
+  data_broker: 'findings.graph.node.data_broker',
+  photo: 'findings.graph.node.photo',
+  identifier: 'findings.graph.node.identifier',
+}
+
+/** Only the displayed wording is localised; the raw type drives the colours. */
+function nodeTypeLabel(t: Translator, type: string): string {
+  const key = NODE_TYPE_KEYS[type]
+  return key ? t(key) : type
+}
 
 function nodeColor(type: string): string {
   switch (type) {
@@ -64,6 +88,7 @@ function createInitialNodes(nodes: GraphNode[], height: number): PositionedNode[
 }
 
 export function RelationshipGraph({ nodes, edges, height = 520 }: RelationshipGraphProps): JSX.Element {
+  const { t } = useI18n()
   const [simulation, setSimulation] = useState<PositionedNode[]>(() => createInitialNodes(nodes, height))
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [pan, setPan] = useState({ x: 0, y: 0 })
@@ -144,6 +169,7 @@ export function RelationshipGraph({ nodes, edges, height = 520 }: RelationshipGr
       <svg
         className="graph-frame"
         viewBox={`0 0 ${VIEW_WIDTH} ${height}`}
+        aria-label={t('findings.graph.ariaLabel')}
         onMouseMove={(event) => {
           if (!dragState.current.active) return
           const dx = event.clientX - dragState.current.x
@@ -159,6 +185,8 @@ export function RelationshipGraph({ nodes, edges, height = 520 }: RelationshipGr
           dragState.current.active = false
         }}
       >
+        <title>{t('findings.graph.ariaLabel')}</title>
+        <desc>{t('findings.graph.description')}</desc>
         <rect
           width={VIEW_WIDTH}
           height={height}
@@ -204,8 +232,8 @@ export function RelationshipGraph({ nodes, edges, height = 520 }: RelationshipGr
         </g>
       </svg>
       <div className="graph-legend">
-        <span>Click nodes to inspect. Drag the canvas to pan.</span>
-        {selectedNode ? <span>Selected: {selectedNode.label} ({selectedNode.type})</span> : null}
+        <span>{t('findings.graph.hint')}</span>
+        {selectedNode ? <span>{t('findings.graph.selected', { label: selectedNode.label, type: nodeTypeLabel(t, selectedNode.type) })}</span> : null}
       </div>
     </div>
   )

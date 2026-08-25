@@ -365,6 +365,11 @@
   min-width: 18rem;
 }
 
+.language-switcher {
+  width: auto;
+  padding: 0.4rem 0.6rem;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

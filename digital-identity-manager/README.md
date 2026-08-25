@@ -47,6 +47,7 @@ Read [SECURITY.md](SECURITY.md) and [PRIVACY.md](PRIVACY.md) before running anyt
 | Evidence storage (hash, HTML, screenshot paths) | `/evidence` |
 | Explainable completeness score | `/dashboard` |
 | Export everything / erase everything | `/settings` |
+| Bilingual interface (English / French) | Language switcher in the top bar |
 
 Optional LLM assistance (Claude or OpenAI) can summarise findings and propose
 correlations. It is **never required**, it is disabled by default, and every

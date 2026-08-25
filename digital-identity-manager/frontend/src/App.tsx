@@ -5,6 +5,7 @@ import { SidebarNav } from './components/SidebarNav'
 import { ToastViewport } from './components/Toast'
 import { TopBar } from './components/TopBar'
 import { useAuth } from './hooks/useAuth'
+import { useI18n } from './i18n'
 import { AddressesPage } from './pages/AddressesPage'
 import { BootstrapPage } from './pages/BootstrapPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -66,12 +67,13 @@ function AuthenticatedApp(): JSX.Element {
 
 export default function App(): JSX.Element {
   const { loading, user, needsBootstrap } = useAuth()
+  const { t } = useI18n()
 
   return (
     <>
       {loading ? (
         <div className="full-screen-shell">
-          <LoadingState message="Checking authentication and bootstrap status…" />
+          <LoadingState message={t('app.checkingSession')} />
         </div>
       ) : needsBootstrap && !user ? (
         <BootstrapPage />

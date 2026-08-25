@@ -15,6 +15,7 @@ import { PageHeader } from '../components/PageHeader'
 import { ProgressBar } from '../components/ProgressBar'
 import { useIdentity } from '../hooks/useIdentity'
 import { useToast } from '../hooks/useToast'
+import { useI18n, type TranslationKey } from '../i18n'
 import { formatDateTime, getErrorDetail, joinLines, maybeNull, splitLines } from '../utils'
 
 interface GeneralStepState {
@@ -37,17 +38,22 @@ const defaultGeneral: GeneralStepState = {
   notes: '',
 }
 
-const steps = [
-  { title: 'General info', description: 'Create the core identity record.' },
-  { title: 'Emails', description: 'List known email addresses, one per line.' },
-  { title: 'Phones', description: 'List known phone numbers, one per line.' },
-  { title: 'Usernames', description: 'List usernames and handles, one per line.' },
-  { title: 'Name variants', description: 'Track alternative names and former identities.' },
-  { title: 'Former addresses', description: 'Capture prior home or mailing addresses.' },
-  { title: 'Professional history', description: 'One line per role: Company | Position | Website | Domain' },
-  { title: 'Domains', description: 'List domains owned or used by the identity.' },
-  { title: 'Known profiles', description: 'One line per profile: Platform | Username | URL' },
-  { title: 'Photos / avatars', description: 'Upload one or more reference photos.' },
+interface WizardStep {
+  title: TranslationKey
+  description: TranslationKey
+}
+
+const steps: WizardStep[] = [
+  { title: 'identity.wizard.step.general.title', description: 'identity.wizard.step.general.description' },
+  { title: 'identity.wizard.step.emails.title', description: 'identity.wizard.step.emails.description' },
+  { title: 'identity.wizard.step.phones.title', description: 'identity.wizard.step.phones.description' },
+  { title: 'identity.wizard.step.usernames.title', description: 'identity.wizard.step.usernames.description' },
+  { title: 'identity.wizard.step.nameVariants.title', description: 'identity.wizard.step.nameVariants.description' },
+  { title: 'identity.wizard.step.addresses.title', description: 'identity.wizard.step.addresses.description' },
+  { title: 'identity.wizard.step.companies.title', description: 'identity.wizard.step.companies.description' },
+  { title: 'identity.wizard.step.domains.title', description: 'identity.wizard.step.domains.description' },
+  { title: 'identity.wizard.step.profiles.title', description: 'identity.wizard.step.profiles.description' },
+  { title: 'identity.wizard.step.photos.title', description: 'identity.wizard.step.photos.description' },
 ]
 
 function parseDelimitedLines(text: string, columns: number): string[][] {
@@ -60,6 +66,7 @@ function parseDelimitedLines(text: string, columns: number): string[][] {
 export function IdentityWizardPage(): JSX.Element {
   const { selectedIdentity, selectedIdentityId, upsertIdentity } = useIdentity()
   const { addToast } = useToast()
+  const { t } = useI18n()
   const [stepIndex, setStepIndex] = useState(0)
   const [saving, setSaving] = useState(false)
   const [general, setGeneral] = useState<GeneralStepState>(defaultGeneral)
@@ -276,7 +283,7 @@ export function IdentityWizardPage(): JSX.Element {
 
   const saveCurrentStep = async (advance = false) => {
     if (!selectedIdentityId && stepIndex > 0) {
-      addToast({ title: 'Create the identity first', tone: 'warning' })
+      addToast({ title: t('identity.wizard.toast.createIdentityFirst'), tone: 'warning' })
       setStepIndex(0)
       return
     }
@@ -286,7 +293,7 @@ export function IdentityWizardPage(): JSX.Element {
       switch (stepIndex) {
         case 0: {
           if (!general.label.trim()) {
-            addToast({ title: 'Identity label required', tone: 'warning' })
+            addToast({ title: t('identity.toast.labelRequired'), tone: 'warning' })
             return
           }
           const payload = {
@@ -347,13 +354,13 @@ export function IdentityWizardPage(): JSX.Element {
         default:
           break
       }
-      addToast({ title: `${activeStep.title} saved`, tone: 'success' })
+      addToast({ title: t('identity.wizard.toast.stepSaved', { step: t(activeStep.title) }), tone: 'success' })
       if (advance) {
         setStepIndex((current) => Math.min(steps.length - 1, current + 1))
       }
     } catch (errorValue) {
       addToast({
-        title: `Unable to save ${activeStep.title.toLowerCase()}`,
+        title: t('identity.wizard.toast.stepFailed', { step: t(activeStep.title) }),
         description: getErrorDetail(errorValue),
         tone: 'danger',
       })
@@ -366,9 +373,9 @@ export function IdentityWizardPage(): JSX.Element {
     try {
       await deletePhoto(photo.id)
       setUploadedPhotos((current) => current.filter((item) => item.id !== photo.id))
-      addToast({ title: 'Photo deleted', tone: 'success' })
+      addToast({ title: t('identity.wizard.toast.photoDeleted'), tone: 'success' })
     } catch (errorValue) {
-      addToast({ title: 'Unable to delete photo', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('identity.wizard.toast.photoDeleteFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     }
   }
 
@@ -378,32 +385,32 @@ export function IdentityWizardPage(): JSX.Element {
         return (
           <div className="form-grid">
             <div className="span-6">
-              <Field label="Identity label" htmlFor="wizard-label" required>
+              <Field label={t('identity.field.label')} htmlFor="wizard-label" required>
                 <input id="wizard-label" value={general.label} onChange={(event) => setGeneral((current) => ({ ...current, label: event.target.value }))} />
               </Field>
             </div>
             <div className="span-6">
-              <Field label="Country" htmlFor="wizard-country">
+              <Field label={t('common.country')} htmlFor="wizard-country">
                 <input id="wizard-country" value={general.country} onChange={(event) => setGeneral((current) => ({ ...current, country: event.target.value }))} />
               </Field>
             </div>
             <div className="span-6">
-              <Field label="First name" htmlFor="wizard-first-name">
+              <Field label={t('identity.field.firstName')} htmlFor="wizard-first-name">
                 <input id="wizard-first-name" value={general.first_name} onChange={(event) => setGeneral((current) => ({ ...current, first_name: event.target.value }))} />
               </Field>
             </div>
             <div className="span-6">
-              <Field label="Last name" htmlFor="wizard-last-name">
+              <Field label={t('identity.field.lastName')} htmlFor="wizard-last-name">
                 <input id="wizard-last-name" value={general.last_name} onChange={(event) => setGeneral((current) => ({ ...current, last_name: event.target.value }))} />
               </Field>
             </div>
             <div className="span-6">
-              <Field label="Birth date" htmlFor="wizard-birth-date">
+              <Field label={t('identity.field.birthDate')} htmlFor="wizard-birth-date">
                 <input id="wizard-birth-date" type="date" value={general.birth_date} onChange={(event) => setGeneral((current) => ({ ...current, birth_date: event.target.value }))} />
               </Field>
             </div>
             <div className="span-12">
-              <Field label="Description" htmlFor="wizard-description">
+              <Field label={t('common.description')} htmlFor="wizard-description">
                 <textarea id="wizard-description" value={general.description} onChange={(event) => setGeneral((current) => ({ ...current, description: event.target.value }))} />
               </Field>
             </div>
@@ -411,19 +418,19 @@ export function IdentityWizardPage(): JSX.Element {
         )
       case 1:
         return (
-          <Field label="Emails" htmlFor="wizard-emails" hint="One email address per line.">
+          <Field label={t('identity.wizard.field.emails')} htmlFor="wizard-emails" hint={t('identity.wizard.field.emailsHint')}>
             <textarea id="wizard-emails" value={emails} onChange={(event) => setEmails(event.target.value)} />
           </Field>
         )
       case 2:
         return (
-          <Field label="Phones" htmlFor="wizard-phones" hint="One phone number per line.">
+          <Field label={t('identity.wizard.field.phones')} htmlFor="wizard-phones" hint={t('identity.wizard.field.phonesHint')}>
             <textarea id="wizard-phones" value={phones} onChange={(event) => setPhones(event.target.value)} />
           </Field>
         )
       case 3:
         return (
-          <Field label="Usernames" htmlFor="wizard-usernames" hint="One username or handle per line.">
+          <Field label={t('identity.wizard.field.usernames')} htmlFor="wizard-usernames" hint={t('identity.wizard.field.usernamesHint')}>
             <textarea id="wizard-usernames" value={usernames} onChange={(event) => setUsernames(event.target.value)} />
           </Field>
         )
@@ -431,12 +438,12 @@ export function IdentityWizardPage(): JSX.Element {
         return (
           <div className="form-grid">
             <div className="span-6">
-              <Field label="Name variants" htmlFor="wizard-name-variants" hint="One per line">
+              <Field label={t('identity.field.nameVariants')} htmlFor="wizard-name-variants" hint={t('identity.field.onePerLine')}>
                 <textarea id="wizard-name-variants" value={nameVariants} onChange={(event) => setNameVariants(event.target.value)} />
               </Field>
             </div>
             <div className="span-6">
-              <Field label="Former identities / aliases" htmlFor="wizard-aliases" hint="One per line">
+              <Field label={t('identity.wizard.field.aliases')} htmlFor="wizard-aliases" hint={t('identity.field.onePerLine')}>
                 <textarea id="wizard-aliases" value={aliases} onChange={(event) => setAliases(event.target.value)} />
               </Field>
             </div>
@@ -444,25 +451,25 @@ export function IdentityWizardPage(): JSX.Element {
         )
       case 5:
         return (
-          <Field label="Former addresses" htmlFor="wizard-addresses" hint="One address per line.">
+          <Field label={t('identity.wizard.field.addresses')} htmlFor="wizard-addresses" hint={t('identity.wizard.field.addressesHint')}>
             <textarea id="wizard-addresses" value={addresses} onChange={(event) => setAddresses(event.target.value)} />
           </Field>
         )
       case 6:
         return (
-          <Field label="Professional history" htmlFor="wizard-companies" hint="Format each line as Company | Position | Website | Domain">
+          <Field label={t('identity.wizard.field.companies')} htmlFor="wizard-companies" hint={t('identity.wizard.field.companiesHint')}>
             <textarea id="wizard-companies" value={companies} onChange={(event) => setCompanies(event.target.value)} />
           </Field>
         )
       case 7:
         return (
-          <Field label="Domains" htmlFor="wizard-domains" hint="One domain per line.">
+          <Field label={t('identity.wizard.field.domains')} htmlFor="wizard-domains" hint={t('identity.wizard.field.domainsHint')}>
             <textarea id="wizard-domains" value={domains} onChange={(event) => setDomains(event.target.value)} />
           </Field>
         )
       case 8:
         return (
-          <Field label="Known profiles" htmlFor="wizard-profiles" hint="Format each line as Platform | Username | URL">
+          <Field label={t('identity.wizard.field.profiles')} htmlFor="wizard-profiles" hint={t('identity.wizard.field.profilesHint')}>
             <textarea id="wizard-profiles" value={profiles} onChange={(event) => setProfiles(event.target.value)} />
           </Field>
         )
@@ -472,40 +479,40 @@ export function IdentityWizardPage(): JSX.Element {
             {!selectedIdentityId ? <IdentityRequiredState /> : null}
             <div className="form-grid">
               <div className="span-6">
-                <Field label="Photo files" htmlFor="wizard-photos" hint="You can select multiple files.">
+                <Field label={t('identity.wizard.field.photoFiles')} htmlFor="wizard-photos" hint={t('identity.wizard.field.photoFilesHint')}>
                   <input id="wizard-photos" type="file" multiple onChange={(event) => setPhotoFiles(Array.from(event.target.files ?? []))} />
                 </Field>
               </div>
               <div className="span-3">
-                <Field label="Platform" htmlFor="wizard-photo-platform">
+                <Field label={t('identity.wizard.field.platform')} htmlFor="wizard-photo-platform">
                   <input id="wizard-photo-platform" value={photoPlatform} onChange={(event) => setPhotoPlatform(event.target.value)} />
                 </Field>
               </div>
               <div className="span-3">
-                <Field label="Source" htmlFor="wizard-photo-source">
+                <Field label={t('common.source')} htmlFor="wizard-photo-source">
                   <input id="wizard-photo-source" value={photoSource} onChange={(event) => setPhotoSource(event.target.value)} />
                 </Field>
               </div>
               <div className="span-12">
-                <Field label="Notes" htmlFor="wizard-photo-notes">
+                <Field label={t('common.notes')} htmlFor="wizard-photo-notes">
                   <textarea id="wizard-photo-notes" value={photoNotes} onChange={(event) => setPhotoNotes(event.target.value)} />
                 </Field>
               </div>
             </div>
             <div className="stack stack--sm">
-              <strong>Uploaded photos</strong>
+              <strong>{t('identity.wizard.uploadedPhotos')}</strong>
               <ul className="list-reset list-grid">
-                {uploadedPhotos.length === 0 ? <li className="muted">No photos uploaded yet.</li> : null}
+                {uploadedPhotos.length === 0 ? <li className="muted">{t('identity.wizard.noPhotos')}</li> : null}
                 {uploadedPhotos.map((photo) => (
                   <li key={photo.id} className="space-between card" style={{ padding: '1rem' }}>
                     <div>
                       <strong>{photo.filename}</strong>
                       <div className="muted">
-                        {formatDateTime(photo.created_at)} · {photo.platform ?? 'Unknown platform'}
+                        {formatDateTime(photo.created_at)} · {photo.platform ?? t('identity.wizard.unknownPlatform')}
                       </div>
                     </div>
                     <Button variant="danger" size="sm" onClick={() => void removeUploadedPhoto(photo)}>
-                      Delete
+                      {t('common.delete')}
                     </Button>
                   </li>
                 ))}
@@ -532,26 +539,37 @@ export function IdentityWizardPage(): JSX.Element {
     profiles,
     selectedIdentityId,
     stepIndex,
+    t,
     uploadedPhotos,
     usernames,
   ])
 
   return (
     <div className="page-stack wizard-grid">
-      <PageHeader title="Identity setup wizard" description="A guided 10-step flow for standing up or refining a digital identity record." />
-      <Card title={`Step ${stepIndex + 1} of ${steps.length}: ${activeStep.title}`} description={activeStep.description}>
+      <PageHeader title={t('identity.wizard.title')} description={t('identity.wizard.description')} />
+      <Card
+        title={t('identity.wizard.stepHeading', {
+          current: stepIndex + 1,
+          total: steps.length,
+          step: t(activeStep.title),
+        })}
+        description={t(activeStep.description)}
+      >
         <div className="stack">
-          <ProgressBar value={progressValue} label={`Step ${stepIndex + 1} / ${steps.length}`} />
+          <ProgressBar
+            value={progressValue}
+            label={t('identity.wizard.progress', { current: stepIndex + 1, total: steps.length })}
+          />
           {stepBody}
           <div className="inline">
             <Button variant="ghost" disabled={stepIndex === 0} onClick={() => setStepIndex((current) => Math.max(0, current - 1))}>
-              Previous
+              {t('common.previous')}
             </Button>
             <Button variant="secondary" onClick={() => void saveCurrentStep(false)} isLoading={saving}>
-              Save step
+              {t('identity.wizard.saveStep')}
             </Button>
             <Button onClick={() => void saveCurrentStep(stepIndex < steps.length - 1)} isLoading={saving}>
-              {stepIndex === steps.length - 1 ? 'Save and finish' : 'Save and continue'}
+              {stepIndex === steps.length - 1 ? t('identity.wizard.saveAndFinish') : t('identity.wizard.saveAndContinue')}
             </Button>
           </div>
         </div>

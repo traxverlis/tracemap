@@ -122,6 +122,11 @@ React 18 + TypeScript + Vite, dark UI, desktop-first and usable on a tablet.
 never needs to know the API host: nginx proxies it (production) or the Vite dev
 server proxies it (development). Routes mirror the pages listed in the README.
 
+The interface is bilingual (English / French). `src/i18n/` holds a dependency-free
+translation layer: dictionaries declare every message in both locales, `t()` only
+accepts known keys, and the language switcher in the top bar persists the choice
+in `localStorage`. See [frontend/README.md](frontend/README.md#internationalisation-french--english).
+
 ## External projects (opt-in)
 
 - **Flowsint** keeps its own datastore, as documented upstream. Integration is

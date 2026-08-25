@@ -15,6 +15,7 @@ import { PhoneMask } from '../components/PhoneMask'
 import { useFetch } from '../hooks/useFetch'
 import { useIdentity } from '../hooks/useIdentity'
 import { useToast } from '../hooks/useToast'
+import { useI18n, type TranslationKey } from '../i18n'
 import { formatDateTime, getErrorDetail, maybeNull, prettyJson, safeParseJson, toNumber } from '../utils'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -22,9 +23,62 @@ const USERNAME_TOOLS = ['maigret', 'sherlock', 'whatsmyname', 'openosint'] as co
 
 type IdentifierType = Identifier['type']
 
+/** `'all'` covers the unfiltered inventory page, which has no fixed type. */
+type IdentifierScope = IdentifierType | 'all'
+
+const IDENTIFIER_TYPES: readonly IdentifierType[] = ['email', 'phone', 'username', 'name', 'address', 'domain']
+
+const TYPE_LABEL_KEYS: Record<IdentifierType, TranslationKey> = {
+  email: 'identifiers.type.email',
+  phone: 'identifiers.type.phone',
+  username: 'identifiers.type.username',
+  name: 'identifiers.type.name',
+  address: 'identifiers.type.address',
+  domain: 'identifiers.type.domain',
+}
+
+const ADD_LABEL_KEYS: Record<IdentifierScope, TranslationKey> = {
+  all: 'identifiers.add.all',
+  email: 'identifiers.add.email',
+  phone: 'identifiers.add.phone',
+  username: 'identifiers.add.username',
+  name: 'identifiers.add.name',
+  address: 'identifiers.add.address',
+  domain: 'identifiers.add.domain',
+}
+
+const EDIT_LABEL_KEYS: Record<IdentifierType, TranslationKey> = {
+  email: 'identifiers.edit.email',
+  phone: 'identifiers.edit.phone',
+  username: 'identifiers.edit.username',
+  name: 'identifiers.edit.name',
+  address: 'identifiers.edit.address',
+  domain: 'identifiers.edit.domain',
+}
+
+const LOADING_KEYS: Record<IdentifierScope, TranslationKey> = {
+  all: 'identifiers.loading.all',
+  email: 'identifiers.loading.email',
+  phone: 'identifiers.loading.phone',
+  username: 'identifiers.loading.username',
+  name: 'identifiers.loading.name',
+  address: 'identifiers.loading.address',
+  domain: 'identifiers.loading.domain',
+}
+
+const EMPTY_TITLE_KEYS: Record<IdentifierScope, TranslationKey> = {
+  all: 'identifiers.empty.all',
+  email: 'identifiers.empty.email',
+  phone: 'identifiers.empty.phone',
+  username: 'identifiers.empty.username',
+  name: 'identifiers.empty.name',
+  address: 'identifiers.empty.address',
+  domain: 'identifiers.empty.domain',
+}
+
 interface IdentifierManagerPageProps {
-  title: string
-  description: string
+  titleKey: TranslationKey
+  descriptionKey: TranslationKey
   fixedType?: IdentifierType
   showUsernameScans?: boolean
   showSensitiveNotice?: boolean
@@ -73,14 +127,15 @@ const toFormState = (identifier: Identifier): IdentifierFormState => ({
 })
 
 export function IdentifierManagerPage({
-  title,
-  description,
+  titleKey,
+  descriptionKey,
   fixedType,
   showUsernameScans = false,
   showSensitiveNotice = false,
 }: IdentifierManagerPageProps): JSX.Element {
   const { selectedIdentity, selectedIdentityId } = useIdentity()
   const { addToast } = useToast()
+  const { t } = useI18n()
   const [editing, setEditing] = useState<Identifier | null>(null)
   const [deleting, setDeleting] = useState<Identifier | null>(null)
   const [form, setForm] = useState<IdentifierFormState>(emptyForm(fixedType ?? 'email'))
@@ -94,6 +149,10 @@ export function IdentifierManagerPage({
   }, [fixedType, selectedIdentityId])
 
   const { data, loading, error, refetch } = useFetch(selectedIdentityId ? fetchIdentifiers : null, [fetchIdentifiers])
+
+  const scope: IdentifierScope = fixedType ?? 'all'
+  const title = t(titleKey)
+  const description = t(descriptionKey)
 
   const openCreate = () => {
     setEditing(null)
@@ -120,11 +179,19 @@ export function IdentifierManagerPage({
     const targetType = fixedType ?? form.type
     const value = form.value.trim()
     if (!value) {
-      addToast({ title: 'Value required', description: 'Enter a non-empty identifier value.', tone: 'warning' })
+      addToast({
+        title: t('identifiers.toast.valueRequired.title'),
+        description: t('identifiers.toast.valueRequired.description'),
+        tone: 'warning',
+      })
       return
     }
     if (targetType === 'email' && !EMAIL_REGEX.test(value)) {
-      addToast({ title: 'Invalid email format', description: 'Use a valid email address before saving.', tone: 'warning' })
+      addToast({
+        title: t('identifiers.toast.invalidEmail.title'),
+        description: t('identifiers.toast.invalidEmail.description'),
+        tone: 'warning',
+      })
       return
     }
 
@@ -150,15 +217,15 @@ export function IdentifierManagerPage({
 
       if (editing) {
         await updateIdentifier(editing.id, payload)
-        addToast({ title: 'Identifier updated', tone: 'success' })
+        addToast({ title: t('identifiers.toast.updated'), tone: 'success' })
       } else {
         await createIdentifier(payload)
-        addToast({ title: 'Identifier created', tone: 'success' })
+        addToast({ title: t('identifiers.toast.created'), tone: 'success' })
       }
       closeModal()
       await refetch()
     } catch (errorValue) {
-      addToast({ title: 'Unable to save identifier', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('identifiers.toast.saveFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setSubmitting(false)
     }
@@ -169,11 +236,11 @@ export function IdentifierManagerPage({
     setDeletingBusy(true)
     try {
       await deleteIdentifier(deleting.id)
-      addToast({ title: 'Identifier deleted', tone: 'success' })
+      addToast({ title: t('identifiers.toast.deleted'), tone: 'success' })
       setDeleting(null)
       await refetch()
     } catch (errorValue) {
-      addToast({ title: 'Unable to delete identifier', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('identifiers.toast.deleteFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     } finally {
       setDeletingBusy(false)
     }
@@ -190,12 +257,12 @@ export function IdentifierManagerPage({
         parameters_json: {},
       })
       addToast({
-        title: `${tool} scan queued`,
-        description: `Queued a username scan for ${target}.`,
+        title: t('identifiers.toast.scanQueued.title', { tool }),
+        description: t('identifiers.toast.scanQueued.description', { target }),
         tone: 'success',
       })
     } catch (errorValue) {
-      addToast({ title: 'Unable to queue scan', description: getErrorDetail(errorValue), tone: 'danger' })
+      addToast({ title: t('identifiers.toast.scanFailed'), description: getErrorDetail(errorValue), tone: 'danger' })
     }
   }
 
@@ -204,8 +271,8 @@ export function IdentifierManagerPage({
     if (!fixedType) {
       baseColumns.push({
         key: 'type',
-        header: 'Type',
-        render: (row) => <Badge tone="primary">{row.type}</Badge>,
+        header: t('common.type'),
+        render: (row) => <Badge tone="primary">{t(TYPE_LABEL_KEYS[row.type])}</Badge>,
         sortValue: (row) => row.type,
         filterValue: (row) => row.type,
       })
@@ -214,14 +281,14 @@ export function IdentifierManagerPage({
     baseColumns.push(
       {
         key: 'value',
-        header: 'Value',
+        header: t('common.value'),
         render: (row) => {
           if (row.type === 'phone') return <PhoneMask value={row.value} />
           if (row.type === 'address') {
             return (
               <div className="stack stack--sm">
                 <span>{row.value}</span>
-                <Badge tone="warning">Highly Sensitive</Badge>
+                <Badge tone="warning">{t('identifiers.highlySensitive')}</Badge>
               </div>
             )
           }
@@ -232,39 +299,43 @@ export function IdentifierManagerPage({
       },
       {
         key: 'label',
-        header: 'Label',
+        header: t('common.label'),
         render: (row) => row.label ?? '—',
         sortValue: (row) => row.label ?? '',
         filterValue: (row) => row.label ?? '',
       },
       {
         key: 'status',
-        header: 'Status',
-        render: (row) => <Badge tone={row.is_active ? 'success' : 'warning'}>{row.is_active ? 'Active' : 'Inactive'}</Badge>,
+        header: t('common.status'),
+        render: (row) => (
+          <Badge tone={row.is_active ? 'success' : 'warning'}>
+            {row.is_active ? t('common.active') : t('common.inactive')}
+          </Badge>
+        ),
         sortValue: (row) => row.is_active,
         filterValue: (row) => row.is_active,
       },
       {
         key: 'confidence',
-        header: 'Confidence',
+        header: t('common.confidence'),
         render: (row) => `${row.confidence}%`,
         sortValue: (row) => row.confidence,
       },
       {
         key: 'updated_at',
-        header: 'Updated',
+        header: t('common.updated'),
         render: (row) => formatDateTime(row.updated_at),
         sortValue: (row) => row.updated_at,
         filterValue: (row) => row.updated_at,
       },
       {
         key: 'actions',
-        header: 'Actions',
+        header: t('common.actions'),
         filterable: false,
         render: (row) => (
           <div className="inline" onClick={(event) => event.stopPropagation()}>
             <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
-              Edit
+              {t('common.edit')}
             </Button>
             {showUsernameScans && row.type === 'username'
               ? USERNAME_TOOLS.map((tool) => (
@@ -275,8 +346,8 @@ export function IdentifierManagerPage({
                     disabled={!canScan}
                     title={
                       canScan
-                        ? `Launch ${tool}`
-                        : 'Authorization acknowledgement is required before running username scans.'
+                        ? t('identifiers.scan.launch', { tool })
+                        : t('identifiers.scan.authorizationRequired')
                     }
                     onClick={() => void launchUsernameScan(tool, row.value)}
                   >
@@ -285,14 +356,14 @@ export function IdentifierManagerPage({
                 ))
               : null}
             <Button variant="danger" size="sm" onClick={() => setDeleting(row)}>
-              Delete
+              {t('common.delete')}
             </Button>
           </div>
         ),
       },
     )
     return baseColumns
-  }, [canScan, fixedType, showUsernameScans])
+  }, [canScan, fixedType, showUsernameScans, t])
 
   if (!selectedIdentityId) {
     return (
@@ -307,7 +378,7 @@ export function IdentifierManagerPage({
     return (
       <div className="page-stack">
         <PageHeader title={title} description={description} />
-        <LoadingState message={`Loading ${title.toLowerCase()}…`} />
+        <LoadingState message={t(LOADING_KEYS[scope])} />
       </div>
     )
   }
@@ -315,7 +386,7 @@ export function IdentifierManagerPage({
   if (error && !data) {
     return (
       <div className="page-stack">
-        <PageHeader title={title} description={description} actions={<Button variant="secondary" onClick={() => void refetch()}>Retry</Button>} />
+        <PageHeader title={title} description={description} actions={<Button variant="secondary" onClick={() => void refetch()}>{t('common.retry')}</Button>} />
         <ErrorState message={error} onRetry={() => void refetch()} />
       </div>
     )
@@ -323,18 +394,14 @@ export function IdentifierManagerPage({
 
   return (
     <div className="page-stack">
-      <PageHeader title={title} description={description} actions={<Button onClick={openCreate}>Add {fixedType ?? 'identifier'}</Button>} />
+      <PageHeader title={title} description={description} actions={<Button onClick={openCreate}>{t(ADD_LABEL_KEYS[scope])}</Button>} />
 
       {showUsernameScans && !selectedIdentity?.authorization_ack ? (
-        <div className="warning-banner">
-          I own this identity or I have explicit written authorisation to audit it must be acknowledged before running username scans.
-        </div>
+        <div className="warning-banner">{t('identifiers.banner.authorizationRequired')}</div>
       ) : null}
 
       {showSensitiveNotice ? (
-        <div className="warning-banner">
-          Address data is highly sensitive. Record only what is necessary and verify authorisation before storing it.
-        </div>
+        <div className="warning-banner">{t('identifiers.banner.sensitiveAddresses')}</div>
       ) : null}
 
       {error && data ? <ErrorState message={error} onRetry={() => void refetch()} /> : null}
@@ -345,21 +412,21 @@ export function IdentifierManagerPage({
         rowKey={(row) => row.id}
         showFilters
         onRowClick={openEdit}
-        emptyTitle={`No ${title.toLowerCase()} yet`}
-        emptyDescription="Create your first record to begin tracking this identity."
+        emptyTitle={t(EMPTY_TITLE_KEYS[scope])}
+        emptyDescription={t('identifiers.emptyDescription')}
       />
 
       <Modal
         open={modalOpen}
-        title={editing ? `Edit ${editing.type}` : `Add ${fixedType ?? form.type}`}
+        title={editing ? t(EDIT_LABEL_KEYS[editing.type]) : t(ADD_LABEL_KEYS[fixedType ?? form.type])}
         onClose={closeModal}
         footer={
           <>
             <Button variant="ghost" onClick={closeModal}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={() => void save()} isLoading={submitting}>
-              {editing ? 'Save changes' : 'Create'}
+              {editing ? t('common.saveChanges') : t('common.create')}
             </Button>
           </>
         }
@@ -367,15 +434,15 @@ export function IdentifierManagerPage({
         <div className="form-grid">
           {!fixedType ? (
             <div className="span-4">
-              <Field label="Type" htmlFor="identifier-type">
+              <Field label={t('common.type')} htmlFor="identifier-type">
                 <select
                   id="identifier-type"
                   value={form.type}
                   onChange={(event) => setForm((current) => ({ ...current, type: event.target.value as IdentifierType }))}
                 >
-                  {['email', 'phone', 'username', 'name', 'address', 'domain'].map((item) => (
+                  {IDENTIFIER_TYPES.map((item) => (
                     <option key={item} value={item}>
-                      {item}
+                      {t(TYPE_LABEL_KEYS[item])}
                     </option>
                   ))}
                 </select>
@@ -383,57 +450,57 @@ export function IdentifierManagerPage({
             </div>
           ) : null}
           <div className="span-6">
-            <Field label="Value" htmlFor="identifier-value" required>
+            <Field label={t('common.value')} htmlFor="identifier-value" required>
               <input id="identifier-value" value={form.value} onChange={(event) => setForm((current) => ({ ...current, value: event.target.value }))} />
             </Field>
           </div>
           <div className="span-3">
-            <Field label="Confidence" htmlFor="identifier-confidence">
+            <Field label={t('common.confidence')} htmlFor="identifier-confidence">
               <input id="identifier-confidence" type="number" min={0} max={100} value={form.confidence} onChange={(event) => setForm((current) => ({ ...current, confidence: event.target.value }))} />
             </Field>
           </div>
           <div className="span-3">
-            <Field label="Label" htmlFor="identifier-label">
+            <Field label={t('common.label')} htmlFor="identifier-label">
               <input id="identifier-label" value={form.label} onChange={(event) => setForm((current) => ({ ...current, label: event.target.value }))} />
             </Field>
           </div>
           <div className="span-3">
-            <Field label="Subtype" htmlFor="identifier-subtype">
+            <Field label={t('identifiers.field.subtype')} htmlFor="identifier-subtype">
               <input id="identifier-subtype" value={form.subtype} onChange={(event) => setForm((current) => ({ ...current, subtype: event.target.value }))} />
             </Field>
           </div>
           {(fixedType ?? form.type) === 'phone' ? (
             <div className="span-3">
-              <Field label="Country hint" htmlFor="identifier-country" hint="ISO country code">
+              <Field label={t('identifiers.field.countryHint')} htmlFor="identifier-country" hint={t('identifiers.field.countryHintHelp')}>
                 <input id="identifier-country" value={form.country} onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))} />
               </Field>
             </div>
           ) : null}
           <div className="span-3">
-            <Field label="Valid from" htmlFor="identifier-valid-from">
+            <Field label={t('identifiers.field.validFrom')} htmlFor="identifier-valid-from">
               <input id="identifier-valid-from" type="date" value={form.valid_from} onChange={(event) => setForm((current) => ({ ...current, valid_from: event.target.value }))} />
             </Field>
           </div>
           <div className="span-3">
-            <Field label="Valid to" htmlFor="identifier-valid-to">
+            <Field label={t('identifiers.field.validTo')} htmlFor="identifier-valid-to">
               <input id="identifier-valid-to" type="date" value={form.valid_to} onChange={(event) => setForm((current) => ({ ...current, valid_to: event.target.value }))} />
             </Field>
           </div>
           <div className="span-3">
-            <Field label="Active" htmlFor="identifier-active">
+            <Field label={t('common.active')} htmlFor="identifier-active">
               <label className="checkbox-row">
                 <input id="identifier-active" type="checkbox" checked={form.is_active} onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))} />
-                <span>{form.is_active ? 'Yes' : 'No'}</span>
+                <span>{form.is_active ? t('common.yes') : t('common.no')}</span>
               </label>
             </Field>
           </div>
           <div className="span-12">
-            <Field label="Notes" htmlFor="identifier-notes">
+            <Field label={t('common.notes')} htmlFor="identifier-notes">
               <textarea id="identifier-notes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
             </Field>
           </div>
           <div className="span-12">
-            <Field label="Attributes JSON" htmlFor="identifier-attributes" hint="Optional extra metadata as a JSON object.">
+            <Field label={t('identifiers.field.attributes')} htmlFor="identifier-attributes" hint={t('identifiers.field.attributesHint')}>
               <textarea id="identifier-attributes" value={form.attributesText} onChange={(event) => setForm((current) => ({ ...current, attributesText: event.target.value }))} />
             </Field>
           </div>
@@ -442,8 +509,8 @@ export function IdentifierManagerPage({
 
       <ConfirmDialog
         open={Boolean(deleting)}
-        title="Delete identifier"
-        description={<p>Remove {deleting?.value} from this identity?</p>}
+        title={t('identifiers.delete.title')}
+        description={<p>{t('identifiers.delete.description', { value: deleting?.value ?? '' })}</p>}
         onClose={() => setDeleting(null)}
         onConfirm={() => void remove()}
         isLoading={deletingBusy}
