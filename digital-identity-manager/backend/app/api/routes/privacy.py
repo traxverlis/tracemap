@@ -86,7 +86,7 @@ def delete_broker(broker_id: str, db: DbSession, user: CurrentUser) -> Response:
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/data-brokers/import-catalog", response_model=CatalogImportResponse)
+@router.post("/data-brokers/import", response_model=CatalogImportResponse)
 def import_catalog(db: DbSession, user: CurrentUser):
     """Import ``data/data_brokers.csv``.
 
@@ -151,7 +151,7 @@ def import_catalog(db: DbSession, user: CurrentUser):
     return {"imported": imported, "skipped": skipped}
 
 
-@router.get("/deletions", response_model=list[DeletionRequestRead])
+@router.get("/deletion-requests", response_model=list[DeletionRequestRead])
 def list_deletions(
     db: DbSession,
     user: CurrentUser,
@@ -166,7 +166,11 @@ def list_deletions(
     return list(db.scalars(query.order_by(DeletionRequest.created_at.desc())))
 
 
-@router.post("/deletions", response_model=DeletionRequestRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/deletion-requests",
+    response_model=DeletionRequestRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_deletion(payload: DeletionRequestCreate, db: DbSession, user: CurrentUser):
     """Track an opt-out request. Sending it stays a manual, human action."""
     data = payload.model_dump()
@@ -187,7 +191,7 @@ def create_deletion(payload: DeletionRequestCreate, db: DbSession, user: Current
     return request
 
 
-@router.patch("/deletions/{request_id}", response_model=DeletionRequestRead)
+@router.patch("/deletion-requests/{request_id}", response_model=DeletionRequestRead)
 def update_deletion(
     request_id: str, payload: DeletionRequestUpdate, db: DbSession, user: CurrentUser
 ):
@@ -225,7 +229,7 @@ def update_deletion(
     return request
 
 
-@router.delete("/deletions/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/deletion-requests/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_deletion(request_id: str, db: DbSession, user: CurrentUser) -> Response:
     request = db.get(DeletionRequest, request_id)
     if request is None:

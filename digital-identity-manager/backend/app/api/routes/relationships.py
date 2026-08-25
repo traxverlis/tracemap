@@ -12,12 +12,14 @@ from app.schemas.osint import (
     CorrelationRules,
     CorrelationRunRequest,
     CorrelationRunResponse,
+    GraphResponse,
     RelationshipCreate,
     RelationshipDecision,
     RelationshipRead,
     ReviewItem,
 )
 from app.services import audit
+from app.services import graph as graph_service
 from app.services import relationships as relationship_service
 
 router = APIRouter(tags=["relationships"])
@@ -60,10 +62,17 @@ def create_relationship(payload: RelationshipCreate, db: DbSession, user: Curren
     return relationship
 
 
-@router.get("/relationships/review-queue", response_model=list[ReviewItem])
+@router.get("/relationships/review", response_model=list[ReviewItem])
 def review_queue(db: DbSession, user: CurrentUser, identity_id: str | None = None):
     """Suggested correlations awaiting an explicit human decision."""
     return relationship_service.build_review_queue(db, identity_id)
+
+
+@router.get("/relationships/graph", response_model=GraphResponse)
+def graph(identity_id: str, db: DbSession, user: CurrentUser):
+    """Identity graph: entities and their (human validated) relationships."""
+    identity = get_identity(identity_id, db)
+    return graph_service.build_graph(db, identity)
 
 
 @router.post("/relationships/{relationship_id}/decision", response_model=RelationshipRead)

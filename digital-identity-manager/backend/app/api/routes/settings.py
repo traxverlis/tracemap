@@ -38,21 +38,32 @@ def read_settings(user: CurrentUser):
     }
 
 
-@router.get("/export/identity/{identity_id}")
-def export_identity(identity_id: str, db: DbSession, user: CurrentUser) -> Response:
-    """Download everything the application knows about this identity."""
-    identity = get_identity(identity_id, db)
-    payload = privacy_service.export_identity(db, identity)
+@router.get("/settings/export")
+def export_identity(
+    db: DbSession,
+    user: CurrentUser,
+    identity_id: str | None = None,
+) -> Response:
+    """Download everything the application knows, for one or every identity."""
+    if identity_id is None:
+        identities = list(db.scalars(select(Identity).order_by(Identity.created_at)))
+    else:
+        identities = [get_identity(identity_id, db)]
+
+    exports = [privacy_service.export_identity(db, identity) for identity in identities]
+    payload: dict[str, object] = (
+        exports[0] if identity_id is not None and exports else {"identities": exports}
+    )
     audit.record(
         db,
         action="privacy.exported",
         entity_type="identity",
-        entity_id=identity.id,
+        entity_id=identity_id,
         user_id=user.id,
-        metadata={"identity_id": identity.id},
+        metadata={"identity_id": identity_id, "identities": len(identities)},
     )
     body = json.dumps(payload, indent=2, ensure_ascii=False, default=str)
-    filename = f"identity-{identity.id}.json"
+    filename = f"identity-{identity_id}.json" if identity_id else "identities.json"
     return Response(
         content=body,
         media_type="application/json",
@@ -60,7 +71,7 @@ def export_identity(identity_id: str, db: DbSession, user: CurrentUser) -> Respo
     )
 
 
-@router.post("/privacy/erase", response_model=EraseResponse)
+@router.post("/settings/erase", response_model=EraseResponse)
 def erase(payload: EraseRequest, db: DbSession, user: CurrentUser):
     """Right to erasure: wipe one identity, or the whole inventory."""
     if payload.confirm != "ERASE":

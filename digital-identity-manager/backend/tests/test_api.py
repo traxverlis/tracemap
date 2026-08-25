@@ -175,7 +175,7 @@ def test_relationship_decision_is_recorded(auth_client, identity):
         },
     ).json()
 
-    queue = auth_client.get("/api/relationships/review-queue").json()
+    queue = auth_client.get("/api/relationships/review").json()
     assert any(item["relationship"]["id"] == relationship["id"] for item in queue)
 
     decided = auth_client.post(
@@ -197,14 +197,16 @@ def test_dashboard_and_graph(auth_client, identity):
         "/api/identifiers",
         json={"identity_id": identity["id"], "type": "username", "value": "johndoe"},
     )
-    summary = auth_client.get(f"/api/dashboard/{identity['id']}")
+    summary = auth_client.get("/api/dashboard/summary", params={"identity_id": identity["id"]})
     assert summary.status_code == 200
     body = summary.json()
     assert body["usernames"] == 1
     assert body["identifiers"] == 1
     assert "completeness" in body
 
-    graph = auth_client.get(f"/api/graph/{identity['id']}").json()
+    graph = auth_client.get(
+        "/api/relationships/graph", params={"identity_id": identity["id"]}
+    ).json()
     assert any(node["type"] == "identity" for node in graph["nodes"])
     assert any(node["type"] == "username" for node in graph["nodes"])
 
@@ -234,18 +236,18 @@ def test_export_and_erase(auth_client, identity):
         "/api/identifiers",
         json={"identity_id": identity["id"], "type": "email", "value": "a@example.com"},
     )
-    export = auth_client.get(f"/api/export/identity/{identity['id']}")
+    export = auth_client.get("/api/settings/export", params={"identity_id": identity["id"]})
     assert export.status_code == 200
     assert "attachment" in export.headers["content-disposition"]
     assert export.json()["identity"]["id"] == identity["id"]
 
     refused = auth_client.post(
-        "/api/privacy/erase", json={"identity_id": identity["id"], "confirm": "nope"}
+        "/api/settings/erase", json={"identity_id": identity["id"], "confirm": "nope"}
     )
     assert refused.status_code == 400
 
     erased = auth_client.post(
-        "/api/privacy/erase", json={"identity_id": identity["id"], "confirm": "ERASE"}
+        "/api/settings/erase", json={"identity_id": identity["id"], "confirm": "ERASE"}
     )
     assert erased.status_code == 200
     assert auth_client.get("/api/identifiers", params={"identity_id": identity["id"]}).json() == []
