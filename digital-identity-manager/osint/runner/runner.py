@@ -23,6 +23,7 @@ Protocol
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import os
@@ -195,9 +196,11 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _authorized(self) -> bool:
+        # Fail closed: without a configured token the runner refuses every job.
         if not TOKEN:
-            return True
-        return self.headers.get("x-runner-token", "") == TOKEN
+            return False
+        provided = self.headers.get("x-runner-token", "")
+        return hmac.compare_digest(provided, TOKEN)
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib hook
         if self.path.rstrip("/") == "/health":
