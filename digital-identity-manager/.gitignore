@@ -1,0 +1,40 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Collected personal data — never commit any of it
+evidence/*
+!evidence/.gitkeep
+reports/*
+!reports/.gitkeep
+maigret/reports/*
+!maigret/reports/.gitkeep
+sherlock/reports/*
+!sherlock/reports/.gitkeep
+holehe/reports/*
+!holehe/reports/.gitkeep
+data/*.local.csv
+*.sql
+*.dump
+backups/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
