@@ -26,8 +26,10 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 ## First run
 
-1. `cp .env.example .env`, then fill `SECRET_KEY`, `OSINT_RUNNER_TOKEN` and
-   `POSTGRES_PASSWORD` (`openssl rand -hex 32`).
+1. `scripts/init-env.sh` (or `scripts\init-env.ps1` on Windows) creates `.env`
+   from `.env.example` and generates `SECRET_KEY`, `OSINT_RUNNER_TOKEN` and
+   `POSTGRES_PASSWORD`. Existing values are kept, so it is safe to re-run.
+   Filling them by hand (`openssl rand -hex 32`) works just as well.
 2. `docker compose up -d --build`.
 3. Open the dashboard: it asks you to create the local administrator account.
 4. Create an identity, then tick the **authorisation acknowledgement** on
@@ -153,6 +155,7 @@ npm run build
 
 | Symptom | Cause / fix |
 | --- | --- |
+| `required variable POSTGRES_PASSWORD is missing a value` (same for `SECRET_KEY` / `OSINT_RUNNER_TOKEN`) from `docker compose up` | `.env` is absent from `digital-identity-manager/`, or the variable is still the empty placeholder. Run `scripts/init-env.sh` (`scripts\init-env.ps1` on Windows) from that directory, then start the stack again. |
 | `SECRET_KEY is required` at start-up | Fill `.env`; the development placeholder is refused when `ENVIRONMENT=production`. |
 | `403 authorization acknowledgement required` | Tick the authorisation on `/identity` for that identity. |
 | A tool is greyed out on `/scans` | Its runner URL is empty, or the feature needs `ALLOW_OUTBOUND_HTTP=true` / `HIBP_API_KEY`. |
