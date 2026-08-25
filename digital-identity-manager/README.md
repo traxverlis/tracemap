@@ -58,17 +58,31 @@ Ollama is not used anywhere.
 
 ## Quick start
 
+Linux, macOS, WSL:
+
 ```bash
 cd digital-identity-manager
-cp .env.example .env
-
-# Generate the two required secrets
-printf 'SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
-printf 'OSINT_RUNNER_TOKEN=%s\n' "$(openssl rand -hex 32)" >> .env
-printf 'POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" >> .env
-# then remove the empty placeholders that ship in .env.example
-
+scripts/init-env.sh          # creates .env and generates the required secrets
 docker compose up -d --build
+```
+
+Windows (PowerShell):
+
+```powershell
+cd digital-identity-manager
+powershell -ExecutionPolicy Bypass -File scripts\init-env.ps1
+docker compose up -d --build
+```
+
+`init-env.sh` / `init-env.ps1` copy `.env.example` to `.env` and fill the three
+required secrets — `SECRET_KEY`, `OSINT_RUNNER_TOKEN` and `POSTGRES_PASSWORD` —
+with fresh random values. Values that are already set are never overwritten, so
+the scripts can be run again at any time. Filling `.env` by hand works too; the
+stack refuses to start while one of these three is missing or empty:
+
+```
+error while interpolating services.postgres.environment.POSTGRES_PASSWORD:
+required variable POSTGRES_PASSWORD is missing a value
 ```
 
 Then open <http://localhost:8080>. The first visit asks you to create the local
@@ -97,7 +111,7 @@ digital-identity-manager/
 ├── maigret/ sherlock/ holehe/   Tool images and their report volumes
 ├── flowsint/ openosint/         Integration notes (external, opt-in projects)
 ├── postgres/init/      Extensions, Metabase database, read-only role
-├── scripts/            Report importers, normalisation, correlation, backup/restore
+├── scripts/            Environment bootstrap, report importers, normalisation, correlation, backup/restore
 ├── data/               Source and data-broker catalogues (CSV, shipped empty)
 ├── evidence/ reports/  Local artefacts (git-ignored)
 └── docs/               Deep dives (API, correlation, completeness, LLM)
