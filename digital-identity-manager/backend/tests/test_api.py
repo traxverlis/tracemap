@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 
 def test_health_is_public(client):
     response = client.get("/api/health")
@@ -259,3 +261,35 @@ def test_data_broker_optout_url_is_never_invented(auth_client):
     ).json()
     assert broker["optout_url"] is None
     assert broker["search_url"] is None
+
+
+def test_data_broker_catalog_import_is_idempotent(auth_client):
+    from app.config import get_settings
+
+    catalog = Path(get_settings().data_dir) / "data_brokers.csv"
+    catalog.parent.mkdir(parents=True, exist_ok=True)
+    catalog.write_text(
+        "name,domain,country,category,search_url,optout_url,optout_method,"
+        "requires_email,requires_phone,requires_identity_document,"
+        "automation_possible,notes\n"
+        "Catalog Broker,catalog.test,FR,people-search,,https://catalog.test/optout,"
+        "form,yes,no,no,no,verified manually\n"
+        ",,,,,,,,,,,skipped because the name is empty\n",
+        encoding="utf-8",
+    )
+
+    first = auth_client.post("/api/data-brokers/import")
+    assert first.status_code == 200, first.text
+    assert first.json() == {"imported": 1, "skipped": 1}
+
+    second = auth_client.post("/api/data-brokers/import")
+    assert second.status_code == 200
+    assert second.json() == {"imported": 0, "skipped": 2}
+
+    brokers = auth_client.get("/api/data-brokers").json()
+    assert [broker["name"] for broker in brokers] == ["Catalog Broker"]
+    assert brokers[0]["optout_url"] == "https://catalog.test/optout"
+
+    catalog.unlink()
+    missing = auth_client.post("/api/data-brokers/import")
+    assert missing.status_code == 404

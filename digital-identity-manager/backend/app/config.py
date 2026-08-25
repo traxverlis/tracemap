@@ -74,6 +74,10 @@ class Settings(BaseSettings):
     evidence_dir: str = "/data/evidence"
     reports_dir: str = "/data/reports"
     photos_dir: str = "/data/evidence/photos"
+    # Read-only catalogue bind mount (``data/sources.csv``, ``data/data_brokers.csv``).
+    data_dir: str = "/data/catalog"
+    # Where the Flowsint graph exports are written.
+    flowsint_export_dir: str | None = None
     max_upload_bytes: int = 16 * 1024 * 1024
 
     # --- LLM abstraction ---------------------------------------------------

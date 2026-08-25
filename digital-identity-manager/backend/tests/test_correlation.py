@@ -52,9 +52,7 @@ def test_score_never_reaches_certainty_automatically():
 
 def test_penalties_lower_the_score():
     positive = [Component(rule="same_username", label="u", weight=70, detail="e")]
-    penalised = positive + [
-        Component(rule="conflicting_email", label="c", weight=-40, detail="e")
-    ]
+    penalised = positive + [Component(rule="conflicting_email", label="c", weight=-40, detail="e")]
     assert score_components(penalised).score < score_components(positive).score
 
 

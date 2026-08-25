@@ -36,7 +36,11 @@ def write_export(
 ) -> dict[str, str]:
     """Write ``graph.json`` plus ``nodes.csv`` / ``edges.csv`` and return paths."""
     settings = get_settings()
-    directory = Path(output_dir or settings.reports_dir) / "flowsint" / identity_id
+    base = output_dir or settings.flowsint_export_dir
+    if base:
+        directory = Path(base) / identity_id
+    else:
+        directory = Path(settings.reports_dir) / "flowsint" / identity_id
     directory.mkdir(parents=True, exist_ok=True)
 
     graph_path = directory / "graph.json"

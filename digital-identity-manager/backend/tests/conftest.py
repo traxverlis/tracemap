@@ -122,7 +122,5 @@ def identity(auth_client) -> dict:
     )
     assert response.status_code == 201, response.text
     payload = response.json()
-    auth_client.post(
-        f"/api/identities/{payload['id']}/authorization", json={"acknowledged": True}
-    )
+    auth_client.post(f"/api/identities/{payload['id']}/authorization", json={"acknowledged": True})
     return payload
