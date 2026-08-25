@@ -157,6 +157,7 @@ npm run build
 | --- | --- |
 | `required variable POSTGRES_PASSWORD is missing a value` (same for `SECRET_KEY` / `OSINT_RUNNER_TOKEN`) from `docker compose up` | `.env` is absent from `digital-identity-manager/`, or the variable is still the empty placeholder. Run `scripts/init-env.sh` (`scripts\init-env.ps1` on Windows) from that directory, then start the stack again. |
 | `SECRET_KEY is required` at start-up | Fill `.env`; the development placeholder is refused when `ENVIRONMENT=production`. |
+| The login screen appears instead of the “create the administrator” screen | The UI could not reach the API on first load (backend still migrating). It now retries and shows an *API unreachable* screen with a **Try again** button; check `docker compose logs backend` if it persists. |
 | `403 authorization acknowledgement required` | Tick the authorisation on `/identity` for that identity. |
 | A tool is greyed out on `/scans` | Its runner URL is empty, or the feature needs `ALLOW_OUTBOUND_HTTP=true` / `HIBP_API_KEY`. |
 | Scans stay `PENDING` | `WORKERS_ENABLED=false`, or the backend container is unhealthy — check `docker compose logs backend`. |

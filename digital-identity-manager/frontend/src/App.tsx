@@ -1,5 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
+import { Button } from './components/Button'
+import { Card } from './components/Card'
+import { LanguageSwitcher } from './components/LanguageSwitcher'
 import { LoadingState } from './components/PageState'
 import { SidebarNav } from './components/SidebarNav'
 import { ToastViewport } from './components/Toast'
@@ -65,8 +68,34 @@ function AuthenticatedApp(): JSX.Element {
   )
 }
 
+/** Shown when the API could not be reached: the bootstrap status is unknown. */
+function ApiUnavailableScreen({ message, onRetry }: { message: string; onRetry: () => void }): JSX.Element {
+  const { t } = useI18n()
+
+  return (
+    <div className="full-screen-shell">
+      <Card
+        className="auth-card"
+        title={t('app.apiUnavailableTitle')}
+        description={t('app.apiUnavailableDescription')}
+      >
+        <div className="stack">
+          <div className="warning-banner">{message}</div>
+          <Button onClick={onRetry} fullWidth>
+            {t('common.retry')}
+          </Button>
+          <div className="space-between">
+            <span className="muted">{t('language.label')}</span>
+            <LanguageSwitcher />
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 export default function App(): JSX.Element {
-  const { loading, user, needsBootstrap } = useAuth()
+  const { loading, user, needsBootstrap, initError, retryInitialize } = useAuth()
   const { t } = useI18n()
 
   return (
@@ -75,6 +104,8 @@ export default function App(): JSX.Element {
         <div className="full-screen-shell">
           <LoadingState message={t('app.checkingSession')} />
         </div>
+      ) : initError && !user ? (
+        <ApiUnavailableScreen message={initError} onRetry={retryInitialize} />
       ) : needsBootstrap && !user ? (
         <BootstrapPage />
       ) : !user ? (
