@@ -56,7 +56,10 @@ def create_scan(
             "authorised). Confirm ownership on the Identity page before scanning."
         )
 
-    connector = get_connector(tool)
+    try:
+        connector = get_connector(tool)
+    except (ConnectorDisabled, ConnectorError) as exc:
+        raise ScanError(str(exc)) from exc
     if not connector.enabled:
         raise ScanError(
             f"The '{tool}' connector is not available in this deployment "

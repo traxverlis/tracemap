@@ -1,0 +1,166 @@
+name: digital-identity-manager
+
+# Three isolated networks:
+#   frontend -> web UI + reverse proxy surface
+#   backend  -> PostgreSQL, API, Metabase (no direct Internet exposure)
+#   osint    -> OSINT tool runners only (the only containers that reach the Internet)
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+  osint:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  metabase_data:
+  evidence_data:
+  reports_data:
+  photos_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dim}
+      POSTGRES_USER: ${POSTGRES_USER:-dim}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      METABASE_DB: ${METABASE_DB:-metabase}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - backend
+    # PostgreSQL is deliberately NOT published on the host: port 5432 stays
+    # inside the "backend" network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dim} -d ${POSTGRES_DB:-dim}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-dim}
+      POSTGRES_USER: ${POSTGRES_USER:-dim}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      # OSINT runners (leave empty to disable a tool entirely)
+      MAIGRET_RUNNER_URL: ${MAIGRET_RUNNER_URL:-http://maigret:8080}
+      SHERLOCK_RUNNER_URL: ${SHERLOCK_RUNNER_URL:-http://sherlock:8080}
+      HOLEHE_RUNNER_URL: ${HOLEHE_RUNNER_URL:-http://holehe:8080}
+      OPENOSINT_URL: ${OPENOSINT_URL:-}
+      FLOWSINT_EXPORT_DIR: ${FLOWSINT_EXPORT_DIR:-/data/reports/flowsint}
+      OSINT_RUNNER_TOKEN: ${OSINT_RUNNER_TOKEN:?OSINT_RUNNER_TOKEN is required}
+      # Outbound HTTP (WhatsMyName dataset, HIBP, WHOIS/DNS/TLS) is opt-in
+      ALLOW_OUTBOUND_HTTP: ${ALLOW_OUTBOUND_HTTP:-false}
+      HIBP_API_KEY: ${HIBP_API_KEY:-}
+      # Optional LLM: disabled by default, never required
+      LLM_PROVIDER: ${LLM_PROVIDER:-disabled}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_ALLOW_ADDRESSES: ${LLM_ALLOW_ADDRESSES:-false}
+      LLM_ALLOW_PHONE_NUMBERS: ${LLM_ALLOW_PHONE_NUMBERS:-false}
+      LLM_ALLOW_FULL_EMAILS: ${LLM_ALLOW_FULL_EMAILS:-false}
+      EVIDENCE_DIR: /data/evidence
+      REPORTS_DIR: /data/reports
+      PHOTOS_DIR: /data/photos
+      DATA_DIR: /data/catalog
+    volumes:
+      - evidence_data:/data/evidence
+      - reports_data:/data/reports
+      - photos_data:/data/photos
+      - ./data:/data/catalog:ro
+    networks:
+      - backend
+      - osint
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    networks:
+      - frontend
+      - backend
+
+  metabase:
+    image: metabase/metabase:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: postgres
+      MB_DB_PORT: 5432
+      MB_DB_DBNAME: ${METABASE_DB:-metabase}
+      MB_DB_USER: ${POSTGRES_USER:-dim}
+      MB_DB_PASS: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - metabase_data:/metabase-data
+    ports:
+      - "${METABASE_PORT:-3000}:3000"
+    networks:
+      - backend
+      - frontend
+
+  maigret:
+    build:
+      context: .
+      dockerfile: maigret/Dockerfile
+    restart: unless-stopped
+    environment:
+      RUNNER_TOKEN: ${OSINT_RUNNER_TOKEN:?OSINT_RUNNER_TOKEN is required}
+      RUNNER_MAX_RUNTIME: ${OSINT_MAX_RUNTIME:-1800}
+    volumes:
+      - ./maigret/reports:/reports
+    networks:
+      - osint
+
+  sherlock:
+    build:
+      context: .
+      dockerfile: sherlock/Dockerfile
+    restart: unless-stopped
+    environment:
+      RUNNER_TOKEN: ${OSINT_RUNNER_TOKEN:?OSINT_RUNNER_TOKEN is required}
+      RUNNER_MAX_RUNTIME: ${OSINT_MAX_RUNTIME:-1800}
+    volumes:
+      - ./sherlock/reports:/reports
+    networks:
+      - osint
+
+  holehe:
+    build:
+      context: .
+      dockerfile: holehe/Dockerfile
+    restart: unless-stopped
+    environment:
+      RUNNER_TOKEN: ${OSINT_RUNNER_TOKEN:?OSINT_RUNNER_TOKEN is required}
+      RUNNER_MAX_RUNTIME: ${OSINT_MAX_RUNTIME:-1800}
+    volumes:
+      - ./holehe/reports:/reports
+    networks:
+      - osint

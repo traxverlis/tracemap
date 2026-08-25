@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useState, type DependencyList } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type DependencyList,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
 
 import { getErrorDetail } from '../utils'
 
@@ -7,7 +14,7 @@ interface UseFetchResult<T> {
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
-  setData: React.Dispatch<React.SetStateAction<T | undefined>>
+  setData: Dispatch<SetStateAction<T | undefined>>
 }
 
 export function useFetch<T>(
@@ -40,7 +47,6 @@ export function useFetch<T>(
 
   useEffect(() => {
     void refetch()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refetch, ...deps])
 
   return { data, loading, error, refetch, setData }

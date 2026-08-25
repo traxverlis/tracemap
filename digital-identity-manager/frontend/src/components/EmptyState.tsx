@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react'
+
 interface EmptyStateProps {
   title: string
   description: string
-  action?: React.ReactNode
+  action?: ReactNode
 }
 
 export function EmptyState({ title, description, action }: EmptyStateProps): JSX.Element {

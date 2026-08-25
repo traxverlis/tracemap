@@ -12,7 +12,7 @@ export async function exportData(identity_id?: string): Promise<Blob> {
 
   const token = localStorage.getItem('dim_token')
   const res = await fetch(url.toString(), {
-    headers: token ? { Authorization: `****** } : {},
+    headers: token ? { Authorization: 'Bearer ' + token } : {},
   })
 
   if (!res.ok) {

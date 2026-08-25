@@ -1,0 +1,9 @@
+key,name,type,url,requires_key,terms_url,notes
+maigret,Maigret,tool,https://github.com/soxoj/maigret,false,,Username search across public sites (MIT)
+sherlock,Sherlock,tool,https://github.com/sherlock-project/sherlock,false,,Username search on public sites (MIT)
+holehe,Holehe,tool,https://github.com/megadose/holehe,false,,Checks where an email address is registered (GPL-3.0)
+whatsmyname,WhatsMyName,dataset,https://github.com/WebBreacher/WhatsMyName,false,,Username enumeration dataset (CC BY-SA 4.0)
+openosint,OpenOSINT,tool,https://github.com/OpenOSINT/OpenOSINT,false,,Not started automatically: verify its licence and terms before use
+flowsint,Flowsint,tool,https://github.com/reconurge/flowsint,false,,Graph investigation platform with its own datastore (Apache-2.0)
+hibp,Have I Been Pwned,api,https://haveibeenpwned.com/API/v3,true,https://haveibeenpwned.com/API/v3#License,Breach lookups require a paid API key
+crtsh,crt.sh,api,https://crt.sh,false,,Certificate transparency search for your own domains
