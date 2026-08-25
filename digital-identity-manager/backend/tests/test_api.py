@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.config import get_settings
+
 
 def test_health_is_public(client):
     response = client.get("/api/health")
@@ -228,7 +230,8 @@ def test_ai_is_disabled_by_default(auth_client, identity):
 def test_settings_never_expose_secrets(auth_client):
     body = auth_client.get("/api/settings").json()
     serialised = str(body)
-    assert "secret" not in serialised.lower() or "secret_key" not in serialised.lower()
+    assert "secret" not in serialised.lower()
+    assert get_settings().secret_key not in serialised
     assert body["correlation"]["max_auto_score"] <= 95
     assert isinstance(body["tools"], list)
 
@@ -264,8 +267,6 @@ def test_data_broker_optout_url_is_never_invented(auth_client):
 
 
 def test_data_broker_catalog_import_is_idempotent(auth_client):
-    from app.config import get_settings
-
     catalog = Path(get_settings().data_dir) / "data_brokers.csv"
     catalog.parent.mkdir(parents=True, exist_ok=True)
     catalog.write_text(
