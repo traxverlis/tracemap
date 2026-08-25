@@ -77,6 +77,9 @@ def resolve_dns(domain: str) -> dict[str, list[str]]:
 def tls_certificate(domain: str) -> dict[str, Any] | None:
     """Read the certificate presented by ``domain`` on port 443."""
     context = ssl.create_default_context()
+    # Never negotiate down to TLS 1.0/1.1: a certificate is not worth a
+    # deprecated handshake.
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     try:
         with socket.create_connection((domain, 443), timeout=WHOIS_TIMEOUT) as sock:
             with context.wrap_socket(sock, server_hostname=domain) as tls:

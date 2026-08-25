@@ -48,7 +48,10 @@ SECRET_PATTERN = re.compile(
     r"(?i)\b(?:bearer\s+[a-z0-9._~+/-]{12,}|sk-[a-z0-9]{16,}|ghp_[a-z0-9]{20,}|"
     r"xox[baprs]-[a-z0-9-]{10,}|eyJ[a-z0-9_-]{10,}\.[a-z0-9_-]{10,}\.[a-z0-9_-]{10,})\b"
 )
-EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+# The lookbehind pins the match to the start of the local part: without it a
+# long run of local-part characters with no "@" is re-scanned from every
+# position, which is quadratic (polynomial ReDoS) on attacker-supplied text.
+EMAIL_PATTERN = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+\.[\w.-]+")
 PHONE_PATTERN = re.compile(r"(?<!\w)\+?\d[\d ().-]{7,}\d(?!\w)")
 
 REDACTED = "[REDACTED]"
