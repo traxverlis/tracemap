@@ -107,7 +107,13 @@ def export_identity(db: Session, identity: Identity) -> dict[str, Any]:
             )
         ],
         "data_brokers": [_serialise(row) for row in db.scalars(select(DataBroker))],
-        "ai_suggestions": [_serialise(row) for row in db.scalars(select(AISuggestion))],
+        "ai_suggestions": [
+            _serialise(row)
+            for row in db.scalars(select(AISuggestion))
+            # ``AISuggestion`` links to its identity through the payload, so the
+            # scoping is done here: an export must never leak another identity.
+            if (row.payload_json or {}).get("identity_id") == identity.id
+        ],
     }
 
 

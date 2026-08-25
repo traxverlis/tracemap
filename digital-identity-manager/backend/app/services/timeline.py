@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models import AuditLog
@@ -44,12 +44,18 @@ TITLES: dict[str, str] = {
 def build_timeline(
     db: Session, identity_id: str | None = None, limit: int = 100
 ) -> list[dict[str, Any]]:
-    query = select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(max(1, min(limit, 500)))
+    query = select(AuditLog)
+    if identity_id:
+        # Filter in SQL, before the limit, so scoping to an identity cannot
+        # starve the page with events belonging to other identities. Entries
+        # without an ``identity_id`` are global and stay visible.
+        scoped_to = AuditLog.metadata_json["identity_id"].as_string()
+        query = query.where(or_(scoped_to.is_(None), scoped_to == identity_id))
+
+    query = query.order_by(AuditLog.timestamp.desc()).limit(max(1, min(limit, 500)))
     events: list[dict[str, Any]] = []
     for entry in db.scalars(query):
         metadata = entry.metadata_json or {}
-        if identity_id and metadata.get("identity_id") not in (None, identity_id):
-            continue
         events.append(
             {
                 "id": entry.id,
